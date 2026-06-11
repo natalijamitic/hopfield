@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Hopfield Memory — Modular Spiking Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg0: #0a0a0c;
+  --bg1: #111116;
+  --bg2: #17171e;
+  --bg3: #1f1f28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8e8f0;
+  --text2: #9090a8;
+  --text3: #55556a;
+  --accent: #5de0c0;
+  --accent2: #3ab89a;
+  --danger: #e05d5d;
+  --warn: #e0a050;
+  --info: #5d9de0;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{background:var(--bg0);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;}
+body{min-height:100vh;display:flex;flex-direction:column;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:52px;border-bottom:1px solid var(--border);background:var(--bg0);position:sticky;top:0;z-index:100;}
+.nav-logo{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.04em;}
+.nav-logo span{color:var(--text3);}
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--text2);border:none;background:transparent;transition:all .15s;}
+.nav-tab:hover{color:var(--text);background:var(--bg2);}
+.nav-tab.active{color:var(--accent);background:rgba(93,224,192,.07);}
+.nav-badge{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:4px;background:var(--bg3);color:var(--text3);margin-left:6px;}
+
+/* LAYOUT */
+main{flex:1;display:flex;flex-direction:column;}
+.page{display:none;flex:1;padding:2rem;}
+.page.active{display:flex;flex-direction:column;gap:1.5rem;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items: start;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;}
+@media(max-width:1150px){.two-col{grid-template-columns:1fr;}, .three-col{grid-template-columns:1fr;}}
+
+/* CARDS */
+.card{background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;}
+.card-title{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text);font-size:13px;font-family:var(--sans);cursor:pointer;transition:all .15s;}
+.btn:hover{background:var(--bg3);border-color:rgba(255,255,255,.2);}
+.btn:active{transform:scale(.98);}
+.btn.primary{border-color:var(--accent2);color:var(--accent);}
+.btn.primary:hover{background:rgba(93,224,192,.08);}
+.btn.danger{border-color:rgba(224,93,93,.4);color:var(--danger);}
+.btn.danger:hover{background:rgba(224,93,93,.07);}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:.75rem;}
+
+/* INPUTS */
+.slider-row{display:flex;align-items:center;gap:10px;margin:.5rem 0;}
+.slider-row label{font-size:12px;color:var(--text2);min-width:140px;}
+.slider-row .val{font-family:var(--mono);font-size:12px;color:var(--accent);min-width:45px;text-align:right;}
+input[type=range]{flex:1;-webkit-appearance:none;height:2px;background:var(--bg3);border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;}
+select{background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-family:var(--sans);font-size:13px;outline:none;}
+
+/* PIXEL CANVAS */
+canvas.pixel{image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;cursor:pointer;display:block;margin:0 auto;}
+canvas.pixel:hover{border-color:var(--border2);}
+
+/* THUMBNAILS */
+.mem-grid{display:flex;gap:8px;flex-wrap:wrap;min-height:50px;align-items:flex-start;}
+
+/* STATS */
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;}
+.stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;flex:1;min-width:100px;}
+.stat-box .sl{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:2px;}
+.stat-box .sv{font-size:16px;font-weight:500;color:var(--text);font-family:var(--mono);}
+
+/* THEORY & LATEX */
+.info{background:var(--bg2);border-left:2px solid var(--accent2);border-radius:0 8px 8px 0;padding:.85rem 1.1rem;font-size:13px;color:var(--text2);line-height:1.7;margin-top:.75rem;}
+.info strong{color:var(--text);}
+.eq{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:.5rem .75rem;border-radius:6px;margin:.4rem 0;color:var(--accent);display:block;overflow-x:auto;}
+.theory-block{margin-bottom:1.5rem;}
+.theory-block h3{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em;}
+.theory-block p{margin-bottom:0.75rem;color:var(--text2);text-align:justify;}
+
+footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">izhikevich<span>/</span>hopfield_spiking <span style="color:var(--text3);margin-left:.5rem;" id="nav-system-dims">N=400 Units</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="setPage('store')">1. Store Trace</button>
+    <button class="nav-tab" onclick="setPage('structural')">2. Synaptic Matrix</button>
+    <button class="nav-tab" onclick="setPage('normal')">3. Intact Dynamics</button>
+    <button class="nav-tab" onclick="setPage('damage')">4. Pathology Module</button>
+    <button class="nav-tab" onclick="setPage('alz')">5. Alzheimer's Module</button>
+    <button class="nav-tab" onclick="setPage('analysis')">6. Memory Efficiency</button>
+    <button class="nav-tab" onclick="setPage('sweep')">7. Damage Sweep</button>
+    <button class="nav-tab" onclick="setPage('params')">8. Model Tuning</button>
+    <button class="nav-tab" onclick="setPage('theory')">9. Theoretical Compendium</button>
+  </div>
+</nav>
+
+<main>
+
+  <div class="page active" id="page-store">
+    <div class="two-col" style="grid-template-columns: 540px 1fr;">
+      <div class="card" style="display:flex; flex-direction:column; align-items:center;">
+        <div class="card-title" style="width:100%;">Draw Pattern Template</div>
+        <canvas id="draw-canvas" class="pixel"></canvas>
+        <div class="btn-row" style="width:100%; justify-content:center;">
+          <button class="btn primary" onclick="storePattern()">Commit to Synapses</button>
+          <button class="btn" onclick="clearDraw()">Clear Canvas</button>
+        </div>
+        <div class="btn-row" style="width:100%; justify-content:center;">
+          <button class="btn" onclick="loadPreset(0)">Lattice Bounds</button>
+          <button class="btn" onclick="loadPreset(1)">Concentric Rings</button>
+          <button class="btn" onclick="loadPreset(2)">Symmetric Cross</button>
+          <button class="btn" onclick="loadPreset(3)">Smiley Face</button>
+          <button class="btn" onclick="loadPreset(4)">House</button>
+        </div>
+        <div class="info" style="width:100%;">
+          Draw a binary pattern vector &xi;<sup>&mu;</sup>. When added, the system updates the associative conductance scaling matrix W<sub>ij</sub> using a projection model optimized for continuous current-driven spiking.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Encoded Synaptic Configurations <span class="nav-badge" id="mem-count-badge">0 / 6</span></div>
+        <div id="mem-grid" class="mem-grid"></div>
+        <div class="btn-row">
+          <button class="btn danger" onclick="clearMemories()">Ablate Weights</button>
+        </div>
+        <div class="info">
+          <strong>Spiking Attractor States:</strong> Rather than simple geometric binary states, these matrices act as resonant filters. Providing a noisy prompt pushes the network to organize into time-locked, pattern-specific spiking configurations.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-normal">
+    <div class="two-col" style="grid-template-columns: 540px 1fr;">
+      <div class="card">
+        <div class="card-title">Input Stimulation Profile</div>
+        <canvas id="cue-canvas-normal" class="pixel" style="margin-bottom:1rem;"></canvas>
+        <div class="slider-row">
+          <label>Input Perturbation Noise</label>
+          <input type="range" min="0" max="75" value="20" id="noise-sl-normal" oninput="updateNoiseVal('normal')"/>
+          <span class="val" id="noise-val-normal">20%</span>
+        </div>
+        <div class="slider-row">
+          <label>Thalamic DC Drive (I<sub>ext</sub>)</label>
+          <input type="range" min="0" max="30" value="12" id="iext-sl-normal" oninput="updateIextVal('normal')"/>
+          <span class="val" id="iext-val-normal">12</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="noisifyCue('normal')">Corrupt Cues</button>
+          <button class="btn primary" id="sim-btn-normal" onclick="toggleSimulation('normal')">Engage Engine</button>
+        </div>
+        <div class="card-title" style="margin-top:1.25rem;">Select Projection Base</div>
+        <div id="mem-grid-normal" class="mem-grid"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Active Network Firing Topography</div>
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1rem;">
+          <canvas id="out-canvas-normal" class="pixel" style="margin:0;"></canvas>
+          <div class="stats-row" style="flex:1; display:flex; flex-direction:column; gap:10px;">
+            <div class="stat-box"><div class="sl">Time elapsed</div><div class="sv" id="time-val-normal">0.0 ms</div></div>
+            <div class="stat-box"><div class="sl">Mean Firing Rate</div><div class="sv" id="hz-val-normal">0 Hz</div></div>
+            <div class="stat-box"><div class="sl">Max Overlap m</div><div class="sv" id="m-val-normal">0.00</div></div>
+          </div>
+        </div>
+        
+        <div class="card-title">Population Raster Plot (Last 200ms)</div>
+        <canvas id="raster-canvas-normal" width="450" height="120" style="width:100%; height:120px; background:var(--bg0); border-radius:6px; border:1px solid var(--border); margin-bottom:1rem;"></canvas>
+
+        <div class="card-title">Memory Cohesion Dynamics (Solid: Active Assembly, Dashed: Non-Pattern Assembly)</div>
+        <canvas id="trace-canvas-normal" width="450" height="240" style="width:100%; height:240px; background:var(--bg0); border-radius:6px; border:1px solid var(--border);"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-damage">
+    <div class="two-col" style="grid-template-columns: 540px 1fr;">
+      <div class="card">
+        <div class="card-title">Pathological Profile & Stimulation</div>
+        <canvas id="cue-canvas-damage" class="pixel" style="margin-bottom:1rem;"></canvas>
+        
+        <div style="background:rgba(224,160,80,0.04); border:1px solid rgba(224,160,80,0.15); border-radius:8px; padding:1rem; margin:1rem 0;">
+          <div style="font-family:var(--mono); font-size:11px; color:var(--warn); margin-bottom:0.75rem;">DEGRADATION ENGINE</div>
+          <div class="slider-row">
+            <label>Damage Intensity</label>
+            <input type="range" min="0" max="95" value="40" id="dmg-sl" oninput="updateDamageVal()"/>
+            <span class="val" id="dmg-val">40%</span>
+          </div>
+          <div class="slider-row">
+            <label>Neurological Profile</label>
+            <select id="dmg-type" onchange="triggerDamageUpdate()" style="flex:1;">
+              <option value="decay">Synaptic Sclerosis (Weight Decay)</option>
+              <option value="neuron">Focal Necrosis (Neuron Lesion)</option>
+              <option value="targeted">Targeted Necrosis (Hub Killing)</option>
+              <option value="noise">Diffuse Dysmetria (Synaptic Noise)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="slider-row">
+          <label>Input Perturbation Noise</label>
+          <input type="range" min="0" max="75" value="20" id="noise-sl-damage" oninput="updateNoiseVal('damage')"/>
+          <span class="val" id="noise-val-damage">20%</span>
+        </div>
+        <div class="slider-row">
+          <label>Thalamic DC Drive (I<sub>ext</sub>)</label>
+          <input type="range" min="0" max="30" value="12" id="iext-sl-damage" oninput="updateIextVal('damage')"/>
+          <span class="val" id="iext-val-damage">12</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="noisifyCue('damage')">Corrupt Cues</button>
+          <button class="btn primary" id="sim-btn-damage" onclick="toggleSimulation('damage')">Engage Damaged Engine</button>
+        </div>
+        <div class="card-title" style="margin-top:1.25rem;">Select Projection Base</div>
+        <div id="mem-grid-damage" class="mem-grid"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Degraded Firing Topography</div>
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1rem;">
+          <canvas id="out-canvas-damage" class="pixel" style="margin:0;"></canvas>
+          <div class="stats-row" style="flex:1; display:flex; flex-direction:column; gap:10px;">
+            <div class="stat-box"><div class="sl">Time elapsed</div><div class="sv" id="time-val-damage">0.0 ms</div></div>
+            <div class="stat-box"><div class="sl">Mean Firing Rate</div><div class="sv" id="hz-val-damage">0 Hz</div></div>
+            <div class="stat-box"><div class="sl">Max Overlap m</div><div class="sv" id="m-val-damage">0.00</div></div>
+          </div>
+        </div>
+        
+        <div class="card-title">Population Raster Plot (Pathological State)</div>
+        <canvas id="raster-canvas-damage" width="450" height="120" style="width:100%; height:120px; background:var(--bg0); border-radius:6px; border:1px solid var(--border); margin-bottom:1rem;"></canvas>
+
+        <div class="card-title">Memory Cohesion Dynamics Under Stress</div>
+        <canvas id="trace-canvas-damage" width="450" height="240" style="width:100%; height:240px; background:var(--bg0); border-radius:6px; border:1px solid var(--border);"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="page" id="page-alz">
+      <div class="two-col" style="grid-template-columns: 320px 1fr; gap: 1rem;">
+        
+        <div class="card" style="display:flex; flex-direction:column; gap:1rem; border-color: rgba(224, 160, 80, 0.25); height: fit-content;">
+          <div>
+            <div class="card-title" style="color: var(--warn); margin-bottom: 0.25rem;">Alzheimer's Engine</div>
+            <div style="font-size:10px; font-family:var(--mono); color:var(--text3);">Systemic Pruning Model</div>
+          </div>
+          
+          <div class="stage-pills" id="alz-stage-pills" style="display: flex; flex-direction: column; gap: 0.4rem; width: 100%;">
+            <div class="stage-pill active-stage" data-stage="0" style="padding: 8px; border-radius: 6px; cursor: pointer; font-size:12px;" onclick="updateAlzheimerStage(0, true)">
+              <strong>Stage 0: Healthy</strong> <span style="float:right; opacity:0.6; font-size:9px; font-family:var(--mono);">0% Loss</span>
+            </div>
+            <div class="stage-pill" data-stage="1" style="padding: 8px; border-radius: 6px; cursor: pointer; font-size:12px;" onclick="updateAlzheimerStage(1, true)">
+              <strong>Stage 1: MCI</strong> <span style="float:right; opacity:0.6; font-size:9px; font-family:var(--mono);">15% Loss</span>
+            </div>
+            <div class="stage-pill" data-stage="2" style="padding: 8px; border-radius: 6px; cursor: pointer; font-size:12px;" onclick="updateAlzheimerStage(2, true)">
+              <strong>Stage 2: Early AD</strong> <span style="float:right; opacity:0.6; font-size:9px; font-family:var(--mono);">35% Loss</span>
+            </div>
+            <div class="stage-pill" data-stage="3" style="padding: 8px; border-radius: 6px; cursor: pointer; font-size:12px;" onclick="updateAlzheimerStage(3, true)">
+              <strong>Stage 3: Moderate</strong> <span style="float:right; opacity:0.6; font-size:9px; font-family:var(--mono);">60% Loss</span>
+            </div>
+            <div class="stage-pill" data-stage="4" style="padding: 8px; border-radius: 6px; cursor: pointer; font-size:12px;" onclick="updateAlzheimerStage(4, true)">
+              <strong>Stage 4: Severe</strong> <span style="float:right; opacity:0.6; font-size:9px; font-family:var(--mono);">85% Loss</span>
+            </div>
+          </div>
+
+          <div class="slider-row" style="margin: 0; padding-top: 0.5rem; border-top: 1px solid var(--border);">
+            <label style="font-family:var(--mono); font-size:11px;">Inspect Node:</label>
+            <input type="range" min="0" max="399" value="0" id="alz-node-sl" oninput="renderAlzheimerNetwork()" style="width:110px;"/>
+            <span class="val" id="alz-node-badge" style="color:var(--accent); font-family:var(--mono);">N0</span>
+          </div>
+
+          <div class="slider-row" style="margin: 0;">
+            <label style="font-family:var(--mono); font-size:11px;">Severity:</label>
+            <input type="range" min="0" max="4" value="0" step="1" id="alz-stage-slider" oninput="updateAlzheimerStage(parseInt(this.value), true)" style="width:110px;"/>
+            <span class="val" id="alz-stage-badge" style="color: var(--warn); font-family:var(--mono);">0%</span>
+          </div>
+
+          <div class="btn-row" style="width:100%; margin-top: 0.25rem;">
+            <button class="btn primary" id="alz-play-btn" style="flex:1;" onclick="toggleAlzheimerTimeline()">Run Progression</button>
+            <button class="btn danger" onclick="resetAlzheimerTimeline()">Reset</button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem; width: 100%;">
+          
+          <div class="card" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <div class="card-title" style="width:100%;">Functional Firing Topography</div>
+            <div style="position:relative; margin: 1rem 0;">
+              <canvas id="alz-topography-canvas" width="400" height="400" style="background:var(--bg0); border-radius:12px; border:1px solid var(--border); display: block; max-width:100%; height:auto;"></canvas>
+            </div>
+            <div class="info" style="margin: 0; width:100%;">
+              <strong>Network State:</strong> Displays the raw spatial grid excitation configuration (20&times;20). When structural paths drop below critical thresholds, attractor basin depths vanish and states are corrupted by noise.
+            </div>
+          </div>
+
+          <div class="card" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <div class="card-title" style="width:100%;">
+              <span>Local Connectome Micro-Graph</span>
+              <span class="nav-badge" style="color:var(--danger);" id="alz-graph-stats-badge">Healthy Control</span>
+            </div>
+            <div style="position:relative; margin: 1rem 0;">
+              <canvas id="alz-graph-canvas" width="400" height="400" style="background:var(--bg0); border-radius:12px; border:1px solid var(--border); display: block; max-width:100%; height:auto;"></canvas>
+            </div>
+            <div class="info" style="margin: 0; width:100%;">
+              <strong>Synaptic Breakdown:</strong> Visualizes the 5 local sequential index neighbors directly below and above the inspected node, showing structural paths fading into background noise.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  <div class="page" id="page-analysis">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; align-items: start;">
+        
+        <div class="card">
+          <div class="card-title">Attractor Distribution & Probabilities</div>
+          <div style="position:relative; margin-bottom:1rem;">
+            <canvas id="analysis-bar-canvas" width="450" height="200" style="width:100%; height:200px; background:var(--bg0); border-radius:6px; border:1px solid var(--border);"></canvas>
+          </div>
+          <div class="info">
+            <strong>Probability Distribution Profile:</strong> This chart projects the current ensemble active trace state vector onto all stored patterns simultaneously, rendering their relative retrieval weight.
+          </div>
+        </div>
+
+        <div class="card" style="display:flex; flex-direction:column; align-items:center;">
+          <div class="card-title" style="width:100%;">
+            <span>Energy Basin Landscape Topology</span>
+            <span class="nav-badge" style="color:var(--accent);" id="energy-coords-badge">m1=0.00, m2=0.00</span>
+          </div>
+          <div style="position:relative; width:220px; height:220px;">
+            <canvas id="energy-matrix-canvas" width="220" height="220" style="background:var(--bg0); border-radius:6px; border:1px solid var(--border); display:block;"></canvas>
+          </div>
+          <div class="info" style="width:100%; margin-top:1rem;">
+            <strong>Mean-Field Attractor Wells:</strong> Displays valleys (darker/glowing green wells) representing stored pattern states. The tracking crosshair (target) shows the network's continuous phase path drifting in real time.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Cross-Correlation Matrix (Pattern Orthogonality)</div>
+          <canvas id="overlap-matrix-canvas" width="220" height="220" style="background:var(--bg0); border-radius:6px; border:1px solid var(--border); display:block; margin:0 auto;"></canvas>
+          <div class="info" style="margin-top:1rem;">
+            <strong>Mutual Interference Metric:</strong> Displays the dot product correlation matrix <span class="mono">&lang;&xi;<sup>&mu;</sup>, &xi;<sup>&nu;</sup>&rang;</span> between stored patterns.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  <div class="page" id="page-structural">
+      <div class="two-col">
+        
+        <div class="card" style="display:flex; flex-direction:column; gap:1rem;">
+          <div class="card-title">
+            <div>Synaptic Matrix Footprints — Target: <span id="node-row-title-idx" style="color:var(--accent);">0</span></div>
+            <div class="slider-row" style="margin:0;">
+              <label style="min-width:auto; margin-right:8px;">Inspect Unit Index:</label>
+              <input type="range" min="0" max="399" value="0" id="matrix-row-sl" oninput="renderStructuralMatrixRow()" style="width:140px;"/>
+            </div>
+          </div>
+          
+          <div style="text-align:center; margin: 0 auto;">
+            <div style="font-size:11px; font-family:var(--mono); color:var(--text3); margin-bottom:0.5rem;">Spatial Inbound Matrix Weights W(target, j) Mapped to Grid</div>
+            <canvas id="structural-spatial-canvas" class="pixel" style="border-radius:8px;"></canvas>
+          </div>
+          
+          <div style="width:100%; margin-top:0.5rem;">
+            <div style="font-size:11px; font-family:var(--mono); color:var(--text3); margin-bottom:0.5rem;">Linear Spectrum of Coupling Weights W<sub>ij</sub> (Green: Exc, Red: Inh)</div>
+            <canvas id="structural-linear-canvas" width="400" height="60" style="width:100%; height:60px; background:var(--bg0); border-radius:6px; border:1px solid var(--border);"></canvas>
+          </div>
+        </div>
+
+        <div class="card" style="display:flex; flex-direction:column; align-items:center;">
+          <div class="card-title" style="width:100%;">
+            <span>Local Connectome Micro-Graph</span>
+            <span class="nav-badge" style="color:var(--info);" id="graph-stats-badge">0 Nodes &middot; 0 Edges</span>
+          </div>
+          
+          <div style="position:relative; width:100%; text-align:center;">
+            <canvas id="structural-graph-canvas" width="340" height="340" style="background:var(--bg0); border-radius:10px; border:1px solid var(--border); max-width:100%; height:auto;"></canvas>
+          </div>
+          
+          <div class="info" style="width:100%; margin-top:1rem;">
+            <strong>Graph Sub-Network Blueprint:</strong> The inspected node is anchored at the center. Inner ring shows immediate 1st neighbors; outer ring shows 2nd neighbors. Synaptic paths display as <strong>glowing green (excitatory)</strong> or <strong>crimson red (inhibitory)</strong> based on weight values.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  <div class="page" id="page-sweep">
+    <div class="card" style="max-width:900px; margin: 0 auto;">
+      <div class="card-title">Damage Resilience Curve <span class="nav-badge" id="sweep-status-badge">Idle</span></div>
+      <p style="font-size:13px; color:var(--text2); margin-bottom:1rem;">
+        Stores a <strong>single memory</strong>, then progressively damages the network across all three pathologies. Each point: the maximum overlap <em>m</em> between the network's spiking state and the stored pattern, measured after a transient.
+      </p>
+      <div class="btn-row" style="margin-bottom:1rem;">
+        <button class="btn primary" id="sweep-btn" onclick="runDamageSweep()">Run Sweep</button>
+        <button class="btn" onclick="clearSweep()">Clear</button>
+        <div class="slider-row" style="margin:0; flex:1; min-width:240px;">
+          <label>Levels (resolution)</label>
+          <input type="range" min="6" max="20" value="11" id="sweep-res-sl" oninput="document.getElementById('sweep-res-val').textContent = this.value"/>
+          <span class="val" id="sweep-res-val">11</span>
+        </div>
+      </div>
+      <canvas id="sweep-canvas" width="820" height="380" style="width:100%; height:380px; background:var(--bg0); border-radius:8px; border:1px solid var(--border);"></canvas>
+      <div class="info" style="margin-top:1rem;">
+        <strong>How to read:</strong> the y-axis is the maximum overlap <em>m</em> with the stored pattern (1.0 = perfect recall). The x-axis is damage strength <em>&lambda;</em>. The three curves are <span style="color:var(--warn);">synaptic sclerosis</span> (uniform weight decay), <span style="color:var(--danger);">focal necrosis</span> (random neuron lesions) and <span style="color:var(--info);">diffuse dysmetria</span> (synaptic noise). Sweeps require <strong>exactly one</strong> stored memory.
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-params">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Izhikevich Kinetic Parameters</div>
+        <div class="slider-row">
+          <label>Time Scale (a)</label>
+          <input type="range" min="1" max="15" value="2" id="param-a-sl" oninput="updateParamVals()"/>
+          <span class="val" id="param-a-val">0.02</span>
+        </div>
+        <div class="slider-row">
+          <label>Sensitivity (b)</label>
+          <input type="range" min="5" max="35" value="20" id="param-b-sl" oninput="updateParamVals()"/>
+          <span class="val" id="param-b-val">0.20</span>
+        </div>
+        <div class="slider-row">
+          <label>Reset Voltage (c)</label>
+          <input type="range" min="-75" max="-50" value="-65" id="param-c-sl" oninput="updateParamVals()"/>
+          <span class="val" id="param-c-val">-65 mV</span>
+        </div>
+        <div class="slider-row">
+          <label>Reset Recovery (d)</label>
+          <input type="range" min="1" max="15" value="8" id="param-d-sl" oninput="updateParamVals()"/>
+          <span class="val" id="param-d-val">8.0</span>
+        </div>
+        
+        <div class="card-title" style="margin-top:1.5rem;">Preset Class Selection</div>
+        <div class="btn-row">
+          <button class="btn" onclick="setNeuronPreset(0.02, 0.20, -65.0, 8.0, 'Regular Spiking (RS)')">Regular Spiking (RS)</button>
+          <button class="btn" onclick="setNeuronPreset(0.02, 0.25, -56.0, 0.05, 'Chattering (CH)')">Chattering (CH)</button>
+          <button class="btn" onclick="setNeuronPreset(0.10, 0.20, -65.0, 2.0, 'Fast Spiking (FS)')">Fast Spiking (FS)</button>
+          <button class="btn" onclick="setNeuronPreset(0.02, 0.25, -65.0, 2.0, 'Low-Threshold Spiking (LTS)')">Low-Threshold (LTS)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Current Phase Status</div>
+        <div style="background:var(--bg2); padding:1rem; border-radius:8px; border:1px solid var(--border);">
+          <div style="font-size:11px; font-family:var(--mono); color:var(--text3); margin-bottom:0.5rem;">Active Kinetic Configuration Profile:</div>
+          <div style="font-size:14px; font-weight:500; color:var(--accent); font-family:var(--mono);" id="active-preset-name">Regular Spiking (RS)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-theory">
+      <div class="card" style="max-width:900px; margin: 0 auto; padding:2rem 2.5rem;">
+        <div class="card-title" style="font-size:14px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:0.5rem; color:var(--accent);">Theoretical Architecture Compendium</div>
+        
+        <div class="theory-block">
+          <h3>1. The Hopfield Legacy: From Energy Landscapes to Dynamics</h3>
+          <p>The Hopfield Network, introduced in 1982, fundamentally changed our understanding of neural computation by shifting the focus from individual neuron logic to the emergent properties of collective systems.</p>
+        </ul>
+            <li> <strong>The Energy Landscape </strong>: A Hopfield network defines an "energy function" E for the state of the network. The system is designed such that stored memory patterns correspond to local minima (attractors) in this high-dimensional landscape. When the network is presented with a partial or noisy pattern, its dynamics act as a gradient descent, effectively "rolling" the state vector down the landscape toward the nearest stored memory basin. </li>
+            <li> <strong>Associative Retrieval </strong>: This is not a search algorithm in the classical sense (like looking through a database). Instead, the state of the network itself evolves to become the memory. </li>
+            <li> <strong>The Limitation of Discrete States </strong>: The original model relied on discrete, McCulloch-Pitts neurons (0/1 or -1/1). While brilliant, this lacks the temporal fidelity of real biological systems, which do not exist in static states but in continuous, rhythmic activity. </li>
+            </ul>
+
+          <p>Memories are transformed into <em>resonant neural filters</em>. Instead of frozen binary arrays, a pattern is recovered when the population settles into a phase-locked, time-distributed spiking assembly representing a specific pattern metric space.</p>
+        </div>
+
+        <div class="theory-block">
+          <h3>2. Bridging the Gap: Izhikevich Dynamics</h3>
+          <p>The Izhikevich model is a mathematical bridge. It offers the computational efficiency of simplified integrate-and-fire models while retaining the firing patterns and spiking complexity of the computationally expensive Hodgkin-Huxley model.</p>
+          <ul style="list-style-type: none; padding-left: 0.5rem; margin-bottom: 1rem;">
+          <li style="margin-bottom: 0.5rem;"><strong style="color: var(--accent);">v</strong> : Membrane voltage potential tracking fast, spike-producing dynamics.</li>
+          <li style="margin-bottom: 0.5rem;"><strong style="color: var(--accent);">u</strong> : Membrane recovery variable tracking slow potassium activation and sodium inactivation feedback loops.</li>
+          </ul>
+          
+          <p><strong>Bifurcation and Excitability Parameters:</strong></p>
+          <ul style="list-style-type: none; padding-left: 0.5rem; margin-bottom: 1.5rem;">
+          <p style="margin-bottom: 0.4rem;"><strong style="color: var(--warn);">a</strong> : Time scale of the recovery variable (slower parameter values mean more prolonged integration).</p>
+          <p style="margin-bottom: 0.4rem;"><strong style="color: var(--warn);">b</strong> : Sensitivity of the recovery variable to subthreshold membrane potential fluctuations.</p>
+          <p style="margin-bottom: 0.4rem;"><strong style="color: var(--warn);">c</strong> : The post-spike membrane voltage reset value.</p>
+          <p style="margin-bottom: 0.4rem;"><strong style="color: var(--warn);">d</strong> : The post-spike resetting current contribution, adjusting the cell's adaptation and refractory period.</p>
+          </ul>
+          
+          <p>The neural engine solves a coupled set of two ordinary differential equations derived by Eugene Izhikevich to reconcile Hodgkin-Huxley accuracy with low-dimensional computational efficiency:</p>
+          <span class="eq">dv/dt = 0.04v&sup2; + 5v + 140 - u + I<sub>syn</sub> + I<sub>ext</sub></span>
+          <span class="eq">du/dt = a &middot; (b &middot; v - u)</span>
+          <p>Subject to the discontinuous auxiliary reset constraint condition:</p>
+          <span class="eq">if v &ge; 30 mV, then v &larr; c and u &larr; u + d</span>
+          <p>Where <strong>v</strong> represents membrane voltage potential, and <strong>u</strong> tracks a membrane recovery variable representing slow potassium activation and sodium inactivation loops.</p>
+        </div>
+
+        <div class="theory-block">
+          <h3>3. Synaptic Trace Vector Coupling & The Scaling Factor</h3>
+          <p>Neurons communicate through continuous, exponentially decaying post-synaptic current traces rather than raw instantaneous delta pulses. Every time a presynaptic neuron fires, its neurotransmitter pool release variable is incremented by a constant threshold value:</p>
+          <span class="eq">S<sub>j</sub>(t) &larr; S<sub>j</sub>(t) + 1.0</span>
+          <p>Between pulses, these activation footprints obey an autonomous metabolic decay script with a target decay window of 15 ms:</p>
+          <span class="eq">dS<sub>j</sub>/dt = -S<sub>j</sub> / 15.0</span>
+          <p>The raw input current contribution arriving at unit <em>i</em> is computed by integrating these traces across the active connection matrix:</p>
+          <span class="eq">I<sub>syn, i</sub> = &sum;<sub>j</sub> W<sub>ij</sub> &middot; S<sub>j</sub> &middot; 28.0</span>
+          <p><strong>Why the 4.0 factor?</strong> Classical Hebbian projections produce small dimensionless coefficients (W<sub>ij</sub> &approx; &pm; 0.15). The Izhikevich membrane framework expects macroscopic input signals scaled to the order of picoamperes (typically 0 to 30) to successfully drive sub-threshold integration up past the critical firing threshold (&approx; -50 mV). A scaling factor of 4.0 represents a fine-tuned global synaptic conductance value (g<sub>_{\text{syn}}</sub>). It optimizes the system's loop gain: high enough to sustain attractor playback, but low enough to prevent unconstrained runaway network-wide excitation.</p>
+        </div>
+
+        <div class="theory-block">
+          <h3>4. The Memory Weight Matrix (Hebbian Learning Rule)</h3>
+          <p>The base structural connections (W<sub>ij</sub>) are generated directly using the classical outer-product rule of the Hopfield model across $M$ distinct binary pattern configurations &\xi:</p>
+          <span class="eq">W<sub>ij</sub> = (1 / N) &middot; &sum;<sub>&mu;</sub> &xi;<sub>i</sub><sup>&mu;</sup> &middot; &xi;<sub>j</sub><sup>&mu;</sup> &nbsp;&nbsp;&nbsp;(for i &ne; j; W<sub>ii</sub> = 0)</span>
+          <p>This links structural pixel correlations to operational biological wiring. When pixels match, they create mutually excitatory channels; when they differ, they form inhibitory boundaries that sculpt the energy landscape of the network basins.</p>
+        </div>
+
+        <div class="theory-block">
+          <h3>5. Pathological Mechanisms (The Degradation Engine)</h3>
+          <p>To analyze the architectural tolerance margins of associative memories under stress profiles, the Pathology Module introduces three distinct structural damage pathways:</p>
+          <ul>
+              <li><strong>Synaptic Sclerosis (Weight Decay):</strong> Uniformly scales down all synaptic values, mimicking generalized toxic pathways or diffuse synaptic loss.</li>
+              <p> Effect: As W<sub>ij</sub> approaches zero, the "rolling" force of the system weakens. The network loses its ability to correct errors. Memories become shallow; the system drifts from a state of "memory recovery" into "spontaneous random firing."</p>
+            <li><strong>Focal Necrosis (Neuron Lesion):</strong> Completely removes target units from operational loops, zeroing their activation traces to simulate strokes or localized trauma.</li>
+            <p>  Effect: By zeroing out entire rows and columns, we effectively remove dimensions from the Hilbert space of the network. This creates "dead zones" in the energy landscape where the system can get stuck in non-functional attractors or enter pathological, circular firing patterns.
+            
+            <li><strong>Diffuse Dysmetria (Synaptic Noise):</strong> Injects white noise fluctuations directly into connection matrices, modeling signal transmission breakdown and structural crosstalk.</li>
+            <p> Effect: In a clean network, the landscape is smooth. With noise, the landscape becomes "bumpy" or jagged. Even if the global basin is deep, the state vector can get trapped in small, artificial ripples created by the noise, leading to jittery retrieval or the inability to stabilize on a memory.
+          </ul>
+        </div>
+      </div>
+    </div>
+
+</main>
+
+<footer>
+  <span>izhikevich spiking neural network simulator — centralized variable setup</span>
+  <span id="footer-system-dt">Runge-Kutta 1-step solver &middot; &Delta;t = 0.25 ms</span>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════
+//  GLOBAL STRUCTURAL SYSTEM CONFIGURATION
+// ═══════════════════════════════════════════
+const CONFIG = {
+  // Lattice Settings
+  SZ: 20,                // Width/height dimension of the neural lattice (20x20)
+  
+  // Canvas Resolution Framework (Allows scaling interface independently of network sizing)
+  CANVAS_DISPLAY: 320,   // Execution view layout dimensions (320px x 320px)
+  THUMB_DISPLAY: 80,     // Thumbnail pixel dimensions (80px x 80px)
+
+  // Core Simulation Variables
+  SYN_SCALE: 4.0,        // Re-normalized macroscopic synaptic multiplier coupling matrix
+  TAU_DECAY: 15.0        // Continuous tracking decay timeline window for traces (ms)
+};
+
+// Derived values computed safely from centralized context properties
+const N = CONFIG.SZ * CONFIG.SZ;
+
+// Initialize runtime matrix storage structures
+let BaseW = new Float32Array(N * N);
+let ActiveW = new Float32Array(N * N);
+let lesionedNodes = new Uint8Array(N);
+let memories = [];
+let drawState = new Int8Array(N).fill(-1);
+
+// Unique independent simulation spaces per interface channel
+let simContexts = {
+  normal:  { cueState: new Int8Array(N).fill(-1), v: new Float32Array(N), u: new Float32Array(N), sTrace: new Float32Array(N), simTime: 0, firingHistory: [], vHistory0: [], vHistory1: [], isRunning: false },
+  damage:  { cueState: new Int8Array(N).fill(-1), v: new Float32Array(N), u: new Float32Array(N), sTrace: new Float32Array(N), simTime: 0, firingHistory: [], vHistory0: [], vHistory1: [], isRunning: false }
+};
+
+let activeTabContext = 'normal';
+let animationFrameId = null;
+
+// Dynamic Modifiable Izhikevich Parameters
+let paramA = 0.02, paramB = 0.2, paramC = -65.0, paramD = 8.0;
+const DT = 0.25;
+
+// Auto-generate NxN Structural Presets using updated metrics
+const PRESETS = [
+    //lattice bounds
+  new Int8Array(Array.from({length: N}, (_, idx) => {
+    let r = Math.floor(idx / CONFIG.SZ), c = idx % CONFIG.SZ;
+    return (r < 2 || r > CONFIG.SZ-3 || c < 2 || c > CONFIG.SZ-3) ? 1 : -1;
+  })),
+    //Concentric rings
+ new Int8Array(Array.from({length: N}, (_, idx) => {
+   let r = Math.floor(idx / CONFIG.SZ), c = idx % CONFIG.SZ;
+   let center = CONFIG.SZ / 2;
+   let dx = (c + 0.5) - center;
+   let dy = (r + 0.5) - center;
+   let dist = Math.sqrt(dx * dx + dy * dy);
+   let innerRing = (dist >= 3.0 && dist <= 4.8);
+   let outerRing = (dist >= 8.8 && dist <= 10.2);
+   
+   return (innerRing || outerRing) ? 1 : -1;
+ })),
+    //Symmetric cross
+ new Int8Array(Array.from({length: N}, (_, idx) => {
+   let r = Math.floor(idx / CONFIG.SZ), c = idx % CONFIG.SZ;
+   let isEven = (CONFIG.SZ % 2 === 0);
+   let isVerticalBar, isHorizontalBar;
+   if (isEven) {
+     let midLow = (CONFIG.SZ / 2) - 1;
+     let midHigh = CONFIG.SZ / 2;
+     isVerticalBar = (c === midLow || c === midHigh);
+     isHorizontalBar = (r === midLow || r === midHigh);}
+   else {
+     let mid = Math.floor(CONFIG.SZ / 2);
+     isVerticalBar = (c === mid);
+     isHorizontalBar = (r === mid);}
+   return (isVerticalBar || isHorizontalBar) ? 1 : -1;
+ })),
+ //Smiley face
+  new Int8Array(Array.from({length: N}, (_, idx) => {
+    let r = Math.floor(idx / CONFIG.SZ), c = idx % CONFIG.SZ;
+    let sz = CONFIG.SZ;
+    let x = (c - sz / 2) / (sz / 2);
+    let y = (r - sz / 2) / (sz / 2);
+    let eyeY = -0.3;
+    let leftEye = Math.abs(x + 0.35) < 0.12 && Math.abs(y - eyeY) < 0.12;
+    let rightEye = Math.abs(x - 0.35) < 0.12 && Math.abs(y - eyeY) < 0.12;
+    let smileCenterX = 0.0;
+    let smileCenterY = 0.1;
+    let distToSmileCenter = Math.sqrt((x - smileCenterX)**2 + (y - smileCenterY)**2);
+    let isMouth = (distToSmileCenter > 0.45 && distToSmileCenter < 0.6) && (y > 0.1);
+    let distToTrueCenter = Math.sqrt(x**2 + y**2);
+    let isOuterRing = (distToTrueCenter > 0.82 && distToTrueCenter < 0.95);
+    return (leftEye || rightEye || isMouth || isOuterRing) ? 1 : -1;
+  })),
+    //House
+ new Int8Array(Array.from({length: N}, (_, idx) => {
+   let r = Math.floor(idx / CONFIG.SZ), c = idx % CONFIG.SZ;
+   let sz = CONFIG.SZ;
+   let x = (c - sz / 2) / (sz / 2);
+   let y = (r - sz / 2) / (sz / 2);
+   let isRoof = false;
+   let isBase = false;
+   if (y >= -0.8 && y < 0) {
+     let roofLine = y - (Math.abs(x) - 0.8);
+     isRoof = Math.abs(roofLine) < 0.12;
+   }
+   if (y >= 0 && y <= 0.8) {
+     let leftWall  = Math.abs(x + 0.6) < 0.08;
+     let rightWall = Math.abs(x - 0.6) < 0.08;
+     let floor     = Math.abs(y - 0.8) < 0.08;
+     let ceiling   = Math.abs(y - 0.0) < 0.08;
+     let isDoorWayWidth = Math.abs(x) < 0.2;
+     let isDoorWayHeight = y > 0.3 && y <= 0.8;
+     if (isDoorWayHeight) {
+       let isSolidDoor = Math.abs(x) <= 0.15 && y > 0.32 && y < 0.8;
+       let isDoorKnob = Math.abs(x - 0.08) < 0.04 && Math.abs(y - 0.55) < 0.04;
+       isBase = leftWall || rightWall || (isSolidDoor && !isDoorKnob);
+     } else {
+       isBase = leftWall || rightWall || floor || ceiling;
+     }
+   }
+   return (isRoof || isBase) ? 1 : -1;
+ })),
+];
+
+function encodeHebbian() {
+  BaseW.fill(0);
+  if (memories.length === 0) return;
+  for (let m = 0; m < memories.length; m++) {
+    const p = memories[m];
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        if (i !== j) {
+          BaseW[i * N + j] += (p[i] * p[j]) / N;
+        }
+      }
+    }
+  }
+  updateDamageMatrix();
+}
+
+function updateDamageMatrix_old() {
+  const dmgLvl = parseInt(document.getElementById('dmg-sl').value) / 100;
+  const dmgType = document.getElementById('dmg-type').value;
+  
+  ActiveW.set(BaseW);
+  lesionedNodes.fill(0);
+
+  if (dmgType === 's') {
+    let wMax = 0;
+    for (let i = 0; i < BaseW.length; i++) {
+      const a = Math.abs(BaseW[i]);
+      if (a > wMax) wMax = a;
+    }
+    for (let i = 0; i < ActiveW.length; i++) {
+      ActiveW[i] = BaseW[i] * (1 - dmgLvl);
+      ActiveW[i] += (Math.random() * 2 - 1) * wMax * dmgLvl * dmgLvl * 1.5;
+    }
+  } else if (dmgType === 'noise') {
+    for (let i = 0; i < ActiveW.length; i++) {
+      ActiveW[i] = BaseW[i] + (Math.random() - 0.5) * dmgLvl * 0.3;
+    }
+  } else if (dmgType === 'neuron') {
+    let seed = 42;
+    function pseudoRandom() {
+      let x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    }
+    let indices = Array.from({length: N}, (_, i) => i).sort(() => pseudoRandom() - 0.5);
+    let count = Math.floor(N * dmgLvl);
+    for (let i = 0; i < count; i++) lesionedNodes[indices[i]] = 1;
+  }
+  renderStructuralMatrixRow();
+}
+    
+function updateDamageMatrix() {
+  const dmgLvl = parseInt(document.getElementById('dmg-sl').value) / 100;
+  const dmgType = document.getElementById('dmg-type').value;
+  
+  ActiveW.set(BaseW); // Reset to base state
+  lesionedNodes.fill(0); // Clear historical lesions
+
+  if (dmgType === 'decay') {
+    // Clear fix to separate decay from noise
+    for (let i = 0; i < ActiveW.length; i++) {
+      ActiveW[i] = BaseW[i] * (1.0 - dmgLvl);
+    }
+  } else if (dmgType === 'noise') {
+    for (let i = 0; i < ActiveW.length; i++) {
+      ActiveW[i] = BaseW[i] + (Math.random() - 0.5) * dmgLvl * 0.3; //
+    }
+  } else if (dmgType === 'neuron') {
+    // Your existing pseudo-random sorting sequence
+    let seed = 42;
+    function pseudoRandom() { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); } //
+    let indices = Array.from({length: N}, (_, i) => i).sort(() => pseudoRandom() - 0.5); //
+    let cut = Math.floor(dmgLvl * N);
+    for (let k = 0; k < cut; k++) {
+      lesionedNodes[indices[k]] = 1;
+    }
+  } else if (dmgType === 'targeted') {
+    // 1. Compute total synaptic weight sum (degree centrality) for each neuron
+    let nodeStrengths = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      let sumWeights = 0;
+      for (let j = 0; j < N; j++) {
+        // Evaluate overall network centrality via absolute matrix mapping
+        sumWeights += Math.abs(BaseW[i * N + j]) + Math.abs(BaseW[j * N + i]);
+      }
+      nodeStrengths[i] = sumWeights;
+    }
+
+    // 2. Map indices and sort based on highest collective weight profile
+    let sortedHubs = Array.from({length: N}, (_, i) => i);
+    sortedHubs.sort((nodeA, nodeB) => nodeStrengths[nodeB] - nodeStrengths[nodeA]);
+
+    // 3. Kill top-tier nodes proportional to current damage intensity
+    let killCount = Math.floor(dmgLvl * N);
+    for (let k = 0; k < killCount; k++) {
+      lesionedNodes[sortedHubs[k]] = 1;
+    }
+  }
+
+  // Handle weight ablation for active lesioned connections
+  for (let i = 0; i < N; i++) {
+    if (lesionedNodes[i] === 1) {
+      for (let j = 0; j < N; j++) {
+        ActiveW[i * N + j] = 0;
+        ActiveW[j * N + i] = 0;
+      }
+    }
+  }
+}
+
+function initNetworkStates(ctxKey) {
+  let cc = simContexts[ctxKey];
+  cc.simTime = 0;
+  cc.firingHistory = [];
+  cc.vHistory0 = [];
+  cc.vHistory1 = [];
+  
+  for (let i = 0; i < N; i++) {
+    cc.v[i] = paramC + (Math.random() - 0.5) * 5.0;
+    cc.u[i] = paramB * cc.v[i];
+    cc.sTrace[i] = 0.0;
+  }
+}
+
+function stepIzhikevich(ctxKey) {
+  let cc = simContexts[ctxKey];
+  const I_ext_base = parseFloat(document.getElementById(`iext-sl-${ctxKey}`).value);
+  const matrix = (ctxKey === 'damage') ? ActiveW : BaseW;
+
+  let Isyn = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    if (ctxKey === 'damage' && lesionedNodes[i]) continue;
+    for (let j = 0; j < N; j++) {
+      if (ctxKey === 'damage' && lesionedNodes[j]) continue;
+      Isyn[i] += matrix[i * N + j] * cc.sTrace[j] * CONFIG.SYN_SCALE;
+    }
+  }
+
+  for (let i = 0; i < N; i++) {
+    if (ctxKey === 'damage' && lesionedNodes[i]) {
+      cc.v[i] = -80.0;
+      cc.u[i] = 0;
+      cc.sTrace[i] = 0;
+      continue;
+    }
+
+    const externalDrive = cc.cueState[i] === 1 ? I_ext_base + 3.0 : I_ext_base - 4.0;
+    const totalCurrent = Math.max(-10, Math.min(50, Isyn[i] + externalDrive));
+
+    cc.v[i] += DT * (0.04 * cc.v[i] * cc.v[i] + 5.0 * cc.v[i] + 140.0 - cc.u[i] + totalCurrent);
+    cc.u[i] += DT * (paramA * (paramB * cc.v[i] - cc.u[i]));
+    cc.sTrace[i] += DT * (-cc.sTrace[i] / CONFIG.TAU_DECAY);
+  }
+
+  for (let i = 0; i < N; i++) {
+    if (ctxKey === 'damage' && lesionedNodes[i]) continue;
+    if (cc.v[i] >= 30.0) {
+      cc.v[i] = paramC;
+      cc.u[i] += paramD;
+      cc.sTrace[i] += 1.0;
+      cc.firingHistory.push({ time: cc.simTime, id: i });
+    }
+  }
+
+  while (cc.firingHistory.length > 0 && cc.firingHistory[0].time < cc.simTime - 200.0) {
+    cc.firingHistory.shift();
+  }
+
+  if (!cc.syncHistory) {
+      cc.syncHistory = Array.from({length: 3}, () => ({ active: [], inactive: [] }));
+      cc.dataLog = [];
+  }
+
+  // Calculate synchronization values for up to 3 stored memories
+  const activeMemoriesCount = Math.min(3, memories.length);
+  let logFrameRow = { time: cc.simTime.toFixed(1) };
+
+  for (let m = 0; m < activeMemoriesCount; m++) {
+      const pattern = memories[m];
+      let sumActive = 0, countActive = 0;
+      let sumInactive = 0, countInactive = 0;
+
+      for (let i = 0; i < N; i++) {
+          if (pattern[i] === 1) {
+              sumActive += cc.sTrace[i];
+              countActive++;
+          } else {
+              sumInactive += cc.sTrace[i];
+              countInactive++;
+          }
+      }
+
+      const avgActive = countActive > 0 ? sumActive / countActive : 0;
+      const avgInactive = countInactive > 0 ? sumInactive / countInactive : 0;
+
+      // Save to the sliding rolling buffer for real-time visualization (last 300 points)
+      cc.syncHistory[m].active.push(avgActive);
+      cc.syncHistory[m].inactive.push(avgInactive);
+
+      if (cc.syncHistory[m].active.length > 300) {
+          cc.syncHistory[m].active.shift();
+          cc.syncHistory[m].inactive.shift();
+      }
+
+      // Accumulate data for permanent logging/export file
+      logFrameRow[`P${m+1}_Active`] = avgActive.toFixed(4);
+      logFrameRow[`P${m+1}_Inactive`] = avgInactive.toFixed(4);
+  }
+
+  // Sample logging row every 1ms to keep files lightweight but accurate
+  if (cc.simTime % 1.0 < DT) {
+      cc.dataLog.push(logFrameRow);
+  }
+
+  cc.simTime += DT;
+}
+
+function renderLoop() {
+  if (!simContexts.normal.isRunning && !simContexts.damage.isRunning) return;
+
+  let targetKey = simContexts.normal.isRunning ? 'normal' : 'damage';
+  let cc = simContexts[targetKey];
+
+  for (let steps = 0; steps < 4; steps++) {
+    stepIzhikevich(targetKey);
+  }
+
+  const outCtx = document.getElementById(`out-canvas-${targetKey}`).getContext('2d');
+  outCtx.clearRect(0, 0, CONFIG.CANVAS_DISPLAY, CONFIG.CANVAS_DISPLAY);
+  const cs = CONFIG.CANVAS_DISPLAY / CONFIG.SZ;
+  
+  for (let i = 0; i < N; i++) {
+    const r = Math.floor(i / CONFIG.SZ), c = i % CONFIG.SZ;
+    
+    if (targetKey === 'damage' && lesionedNodes[i]) {
+      outCtx.fillStyle = '#2a1a1a';
+      outCtx.fillRect(c * cs, r * cs, cs, cs);
+      continue;
+    }
+
+    const intensity = Math.min(1.0, cc.sTrace[i]);
+    outCtx.fillStyle = `rgba(93, 224, 192, ${0.08 + intensity * 0.92})`;
+    outCtx.fillRect(c * cs, r * cs, cs, cs);
+    
+    if (cc.v[i] === paramC && intensity > 0.8) {
+      outCtx.fillStyle = '#ffffff';
+      outCtx.fillRect(c * cs + (cs*0.15), r * cs + (cs*0.15), cs * 0.7, cs * 0.7);
+    }
+  }
+
+  document.getElementById(`time-val-${targetKey}`).textContent = `${cc.simTime.toFixed(1)} ms`;
+  const activeWindows = cc.firingHistory.filter(f => f.time > cc.simTime - 100.0);
+  const hzRate = (activeWindows.length / (N * 0.1));
+  document.getElementById(`hz-val-${targetKey}`).textContent = `${hzRate.toFixed(0)} Hz`;
+
+  let currentOutputVector = new Int8Array(N);
+  for(let i=0; i<N; i++) currentOutputVector[i] = cc.sTrace[i] > 0.15 ? 1 : -1;
+  
+  let maxM = 0.0;
+  memories.forEach(m => {
+    let s = 0;
+    for(let i=0; i<N; i++) s += currentOutputVector[i] * m[i];
+    const overVal = s / N;
+    if(Math.abs(overVal) > Math.abs(maxM)) maxM = overVal;
+  });
+  document.getElementById(`m-val-${targetKey}`).textContent = maxM.toFixed(2);
+
+  drawRaster(targetKey);
+  drawTraces(targetKey);
+  
+  if (document.getElementById('page-analysis').classList.contains('active')) {
+    renderAnalysisPlots(cc);
+    renderEnergyLandscapeTopology(cc);
+  }
+
+  animationFrameId = requestAnimationFrame(renderLoop);
+}
+
+function drawRaster(ctxKey) {
+  let cc = simContexts[ctxKey];
+  const cv = document.getElementById(`raster-canvas-${ctxKey}`);
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  ctx.fillStyle = 'rgba(93, 224, 192, 0.7)';
+  cc.firingHistory.forEach(f => {
+    const normX = (f.time - (cc.simTime - 200.0)) / 200.0;
+    const x = normX * cv.width;
+    const y = cv.height - ((f.id / N) * cv.height);
+    ctx.fillRect(x, y, 1.5, 1.5);
+  });
+}
+
+function drawTraces(ctxKey) {
+  let cc = simContexts[ctxKey];
+  const cv = document.getElementById(`trace-canvas-${ctxKey}`);
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  if (!memories || memories.length === 0) {
+    ctx.fillStyle = '#55556a';
+    ctx.font = '11px "DM Mono"';
+    ctx.fillText("NO ATTRACTOR MEMORIES COMMITTED TO SYNAPSES", 30, cv.height / 2);
+    return;
+  }
+
+  const numPanels = Math.min(3, memories.length);
+  const panelH = cv.height / numPanels;
+  const maxExpectedSyncValue = 1.5; // Fixed upper limit scale preventing graph jumpiness
+
+  for (let m = 0; m < numPanels; m++) {
+    const yOffset = m * panelH;
+
+    // Draw row dividing boundaries
+    if (m > 0) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, yOffset);
+      ctx.lineTo(cv.width, yOffset);
+      ctx.stroke();
+    }
+
+    // Text labels
+    ctx.fillStyle = '#9090a8';
+    ctx.font = '10px "DM Mono"';
+    ctx.fillText(`Memory Assembly Pattern P${m + 1}`, 12, yOffset + 16);
+
+    const hist = cc.syncHistory && cc.syncHistory[m];
+    if (!hist || hist.active.length === 0) continue;
+
+    // Inner plotting helper function
+    const renderSubpopulationCurve = (data, lineColor, useDashedStyle) => {
+      ctx.beginPath();
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 1.6;
+      
+      if (useDashedStyle) {
+        ctx.setLineDash([4, 4]);
+      } else {
+        ctx.setLineDash([]);
+      }
+
+      data.forEach((val, idx) => {
+        const x = (idx / 300) * cv.width;
+        // Project onto panel vertical coordinates with safe margins
+        const normY = (val / maxExpectedSyncValue) * (panelH - 24);
+        const y = yOffset + panelH - 6 - normY;
+
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    };
+
+    // Plot both lines per memory panel
+    renderSubpopulationCurve(hist.active, '#5de0c0', false);  // Active: Solid Mint
+    renderSubpopulationCurve(hist.inactive, '#e05d5d', true); // Inactive: Dashed Coral
+  }
+
+  // Reset context global dash parameters
+  ctx.setLineDash([]);
+}
+
+function toggleSimulation(ctxKey) {
+  const btn = document.getElementById(`sim-btn-${ctxKey}`);
+  let targetNode = simContexts[ctxKey];
+
+  if (targetNode.isRunning) {
+    targetNode.isRunning = false;
+    btn.textContent = ctxKey === 'damage' ? "Engage Damaged Engine" : "Engage Engine";
+    cancelAnimationFrame(animationFrameId);
+  } else {
+    if (memories.length === 0) { alert('Commit target pattern structures first!'); return; }
+    
+    let altKey = ctxKey === 'normal' ? 'damage' : 'normal';
+    if(simContexts[altKey].isRunning) {
+      toggleSimulation(altKey);
+    }
+
+    targetNode.isRunning = true;
+    btn.textContent = "Halt System";
+    if(targetNode.simTime === 0) initNetworkStates(ctxKey);
+    activeTabContext = ctxKey;
+    renderLoop();
+  }
+}
+
+function renderAnalysisPlots(activeContext) {
+  const canvasBar = document.getElementById('analysis-bar-canvas');
+  const ctxBar = canvasBar.getContext('2d');
+  ctxBar.clearRect(0, 0, canvasBar.width, canvasBar.height);
+
+  if (memories.length === 0) return;
+
+  let currentVector = new Int8Array(N);
+  for(let i=0; i<N; i++) currentVector[i] = activeContext.sTrace[i] > 0.15 ? 1 : -1;
+
+  let overlaps = [];
+  let expSum = 0;
+  const beta = 8.0;
+
+  memories.forEach((m) => {
+    let s = 0;
+    for(let i=0; i<N; i++) s += currentVector[i] * m[i];
+    let normOverlap = Math.max(0, s / N);
+    overlaps.push(normOverlap);
+    expSum += Math.exp(beta * normOverlap);
+  });
+
+  let probabilities = overlaps.map(o => Math.exp(beta * o) / (expSum || 1));
+
+  const margin = 40, spacing = 25;
+  const usableWidth = canvasBar.width - (margin * 2);
+  const barWidth = (usableWidth - (spacing * (memories.length - 1))) / memories.length;
+
+  for(let i = 0; i < memories.length; i++) {
+    const p = probabilities[i];
+    const barHeight = p * (canvasBar.height - 60);
+    const x = margin + i * (barWidth + spacing);
+    const y = canvasBar.height - 30 - barHeight;
+
+    ctxBar.fillStyle = i === 0 ? '#5de0c0' : `hsl(${(i*65)%360}, 65%, 60%)`;
+    ctxBar.fillRect(x, y, barWidth, barHeight);
+
+    ctxBar.fillStyle = 'rgba(255,255,255,0.1)';
+    ctxBar.strokeRect(x, y, barWidth, barHeight);
+
+    ctxBar.fillStyle = '#9090a8';
+    ctxBar.font = '10px "DM Mono"';
+    ctxBar.fillText(`P${i+1}`, x + (barWidth/2) - 5, canvasBar.height - 12);
+    ctxBar.fillStyle = '#5de0c0';
+    ctxBar.fillText(`${(p*100).toFixed(0)}%`, x + (barWidth/2) - 12, y - 8);
+  }
+}
+    
+function renderEnergyLandscapeTopology(activeContext) {
+  const canvas = document.getElementById('energy-matrix-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  
+  const w = canvas.width;
+  const h = canvas.height;
+  
+  // Clear the drawing buffer
+  ctx.clearRect(0, 0, w, h);
+
+  if (memories.length === 0) {
+    ctx.fillStyle = 'var(--text3)';
+    ctx.font = '11px "DM Mono"';
+    ctx.fillText("No memory structures stored", 30, h / 2);
+    return;
+  }
+
+  // 1. Determine our two primary coordinate dimensions (Memory 1 and Memory 2)
+  // If we only have 1 memory, map against a default null coordinate axis
+  let m1_pattern = memories[0];
+  let m2_pattern = memories.length > 1 ? memories[1] : new Int8Array(N).fill(-1);
+
+  // 2. Compute the current network state's overlap projections (m1, m2 coordinates)
+  let currentVector = new Int8Array(N);
+  for (let i = 0; i < N; i++) {
+    currentVector[i] = activeContext.sTrace[i] > 0.15 ? 1 : -1;
+  }
+
+  let s1 = 0, s2 = 0;
+  for (let i = 0; i < N; i++) {
+    s1 += currentVector[i] * m1_pattern[i];
+    s2 += currentVector[i] * m2_pattern[i];
+  }
+  let currentM1 = s1 / N;
+  let currentM2 = s2 / N;
+
+  // Update UI metadata coordinate tracking label text
+  document.getElementById('energy-coords-badge').textContent = `m1:${currentM1.toFixed(2)}, m2:${currentM2.toFixed(2)}`;
+
+  // 3. Render the static underlying Mean-Field Energy grid background (2D landscape resolution cache)
+  const res = 4; // Step resolution for raster interpolation performance
+  const beta = 2.5; // Inverse mean field temperature constant defining basin sharp edges
+
+  for (let yG = 0; yG < h; yG += res) {
+    for (let xG = 0; xG < w; xG += res) {
+      // Map pixel indices to overlap parameters spanning from -1.2 up to +1.2
+      let m1_val = ((xG / w) * 2.4) - 1.2;
+      let m2_val = (((h - yG) / h) * 2.4) - 1.2; // Invert y index direction for standard cartesian grid
+
+      // Mean-Field Energy Function Equation
+      let kineticTerm = 0.5 * (m1_val * m1_val + m2_val * m2_val);
+      let entropyTerm = (1.0 / beta) * Math.log(2 * Math.cosh(beta * m1_val) + 2 * Math.cosh(beta * m2_val) + 0.001);
+      let effectiveEnergy = kineticTerm - entropyTerm;
+
+      // Normalize the scale to map value limits into canvas color values
+      // Lower energy = deeper basin wells = high attraction probability
+      let normEnergy = (effectiveEnergy + 0.8) / 1.6;
+      normEnergy = Math.max(0.0, Math.min(1.0, normEnergy));
+
+      // Map color space layout palette: deeper valleys glow dark green/cyan, high ridges are dark space
+      let alphaIntensity = 1.0 - normEnergy; // Inverse mapping makes energy valleys stand out visually
+      ctx.fillStyle = `rgba(93, 224, 192, ${alphaIntensity * 0.14})`;
+      ctx.fillRect(xG, yG, res, res);
+
+      // Render localized core coordinate point centers of the true attractors
+      // Stored attractors sit cleanly around the perimeter axes near intersections
+    }
+  }
+
+  // 4. Draw Topological Guide Rings for Basin Center Reference points (+1,0), (0,+1), (-1,0), (0,-1)
+  const mapCoordToPixel = (m1, m2) => {
+    let px = ((m1 + 1.2) / 2.4) * w;
+    let py = h - (((m2 + 1.2) / 2.4) * h);
+    return { x: px, y: py };
+  };
+
+  let centers = [
+    { name: "P1+", m1: 1.0, m2: 0.0 },
+    { name: "P1-", m1: -1.0, m2: 0.0 }
+  ];
+  if (memories.length > 1) {
+    centers.push({ name: "P2+", m1: 0.0, m2: 1.0 });
+    centers.push({ name: "P2-", m1: 0.0, m2: -1.0 });
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  centers.forEach(c => {
+    let pt = mapCoordToPixel(c.m1, c.m2);
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 12, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.font = '8px "DM Mono"';
+    ctx.fillText(c.name, pt.x - 7, pt.y + 3);
+  });
+
+  // 5. Draw the Dynamic Tracking Particle Crosshair representing the current live network location
+  let livePt = mapCoordToPixel(currentM1, currentM2);
+
+  // Outer glowing path tracking ring
+  ctx.strokeStyle = '#5de0c0';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(livePt.x, livePt.y, 6, 0, 2 * Math.PI);
+  ctx.stroke();
+
+  // Internal target sight lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  // Horizontal cross
+  ctx.moveTo(livePt.x - 10, livePt.y); ctx.lineTo(livePt.x + 10, livePt.y);
+  // Vertical cross
+  ctx.moveTo(livePt.x, livePt.y - 10); ctx.lineTo(livePt.x, livePt.y + 10);
+  ctx.stroke();
+}
+    
+function renderStructuralMatrixRow() {
+  const slider = document.getElementById('matrix-row-sl');
+  const rowIdx = parseInt(slider.value);
+  document.getElementById('node-row-title-idx').textContent = rowIdx;
+  slider.max = N - 1;
+
+  // Use the active weight matrix based on normal or damaged tabs
+  const targetMatrix = (activeTabContext === 'damage') ? ActiveW : BaseW;
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  PART 1: SPATIAL GRID RENDERING
+  // ═══════════════════════════════════════════════════════════════════
+  const canvasSpatial = document.getElementById('structural-spatial-canvas');
+  const ctxSpatial = canvasSpatial.getContext('2d');
+  ctxSpatial.clearRect(0, 0, CONFIG.CANVAS_DISPLAY, CONFIG.CANVAS_DISPLAY);
+  const cs = CONFIG.CANVAS_DISPLAY / CONFIG.SZ;
+
+  for (let j = 0; j < N; j++) {
+    const r = Math.floor(j / CONFIG.SZ), c = j % CONFIG.SZ;
+    const w = targetMatrix[rowIdx * N + j];
+
+    if (j === rowIdx) {
+      ctxSpatial.fillStyle = '#ffffff'; // White out the target node cell itself
+    } else {
+      const mag = Math.min(1.0, Math.abs(w) * 15.0);
+      ctxSpatial.fillStyle = w >= 0 ? `rgba(93, 224, 192, ${mag})` : `rgba(224, 93, 93, ${mag})`;
+    }
+    ctxSpatial.fillRect(c * cs, r * cs, cs, cs);
+    
+    // Subtle crosshair overlay on top of the currently selected target cell
+    if (j === rowIdx) {
+      ctxSpatial.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+      ctxSpatial.lineWidth = 1;
+      ctxSpatial.strokeRect(c * cs + 1, r * cs + 1, cs - 2, cs - 2);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  PART 2: LINEAR SPECTRUM RENDERING
+  // ═══════════════════════════════════════════════════════════════════
+  const canvasLinear = document.getElementById('structural-linear-canvas');
+  const ctxLinear = canvasLinear.getContext('2d');
+  ctxLinear.clearRect(0, 0, canvasLinear.width, canvasLinear.height);
+
+  const step = canvasLinear.width / N;
+  const midY = canvasLinear.height / 2;
+
+  ctxLinear.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctxLinear.beginPath(); ctxLinear.moveTo(0, midY); ctxLinear.lineTo(canvasLinear.width, midY); ctxLinear.stroke();
+
+  for (let j = 0; j < N; j++) {
+    const w = targetMatrix[rowIdx * N + j];
+    const x = j * step + (step / 2);
+    const h = w * 850; // Balanced scaling factor
+
+    if (j === rowIdx) {
+      ctxLinear.fillStyle = '#ffffff';
+      ctxLinear.fillRect(x - 0.5, midY - 4, 1, 8);
+      continue;
+    }
+
+    ctxLinear.fillStyle = w >= 0 ? '#5de0c0' : '#e05d5d';
+    ctxLinear.fillRect(x - 0.5, midY, 1, -h);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  PART 3: GRAPH CONNECTOME GENERATOR
+  // ═══════════════════════════════════════════════════════════════════
+  renderNeighborGraph(rowIdx, targetMatrix);
+}
+
+function renderNeighborGraph(targetId, matrix) {
+  const canvas = document.getElementById('structural-graph-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const centerX = w / 2, centerY = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  const eps = 0.005; // Base noise filter
+
+  let selectedNeighbors = [];
+
+  // 1. Gather up to 5 contiguous nodes directly below targetId
+  for (let i = targetId - 1; i >= 0 && selectedNeighbors.length < 5; i--) {
+    selectedNeighbors.unshift(i);
+  }
+
+  // 2. Gather up to 5 contiguous nodes directly above targetId
+  let aboveNodes = [];
+  for (let i = targetId + 1; i < N && aboveNodes.length < 5; i++) {
+    aboveNodes.push(i);
+  }
+  selectedNeighbors = selectedNeighbors.concat(aboveNodes);
+
+  // Update layout counters to show current local tracking window
+  document.getElementById('graph-stats-badge').textContent =
+    `Local Window: N[${selectedNeighbors[0] || targetId} - ${selectedNeighbors[selectedNeighbors.length - 1] || targetId}]`;
+
+  // 3. Coordinate and Color Mapping Engine
+  let nodesCoords = {};
+  
+  // Center Node: The active inspected anchor unit
+  nodesCoords[targetId] = { x: centerX, y: centerY, r: 7, color: '#ffffff', label: `N${targetId}` };
+
+  // Arrange neighbors in the outer ring and calculate color based on relationship to targetId
+  const ringRadius = 110;
+  selectedNeighbors.forEach((node, idx) => {
+    let angle = (idx / selectedNeighbors.length) * 2 * Math.PI;
+    
+    // Read the explicit weight between this node and our target node
+    let weightToTarget = matrix[targetId * N + node];
+    let nodeColor = 'var(--text3)'; // Default muted gray for uncoupled nodes
+    
+    if (weightToTarget > eps) {
+      nodeColor = '#5de0c0'; // Mint green for Excitatory
+    } else if (weightToTarget < -eps) {
+      nodeColor = '#e05d5d'; // Coral red for Inhibitory
+    }
+
+    nodesCoords[node] = {
+      x: centerX + ringRadius * Math.cos(angle),
+      y: centerY + ringRadius * Math.sin(angle),
+      r: 5,
+      color: nodeColor,
+      label: `N${node}`
+    };
+  });
+
+  // 4. Render Synaptic Edges with High Glow and Visibility
+  const allGraphNodes = Object.keys(nodesCoords).map(Number);
+  
+  // Pass 1: Render background/inter-neighbor links thinner so they don't cause clutter
+  ctx.lineWidth = 1.0;
+  for (let i = 0; i < allGraphNodes.length; i++) {
+    let n1 = allGraphNodes[i];
+    for (let j = i + 1; j < allGraphNodes.length; j++) {
+      let n2 = allGraphNodes[j];
+      // Skip connections directly involving the target node for Pass 1
+      if (n1 === targetId || n2 === targetId) continue;
+
+      let weight = matrix[n1 * N + n2];
+      if (Math.abs(weight) > eps) {
+        ctx.strokeStyle = weight > 0 ? 'rgba(93, 224, 192, 0.15)' : 'rgba(224, 93, 93, 0.15)';
+        ctx.beginPath();
+        ctx.moveTo(nodesCoords[n1].x, nodesCoords[n1].y);
+        ctx.lineTo(nodesCoords[n2].x, nodesCoords[n2].y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Pass 2: Draw target links with a thick, high-contrast glow overlay
+  for (let j = 0; j < allGraphNodes.length; j++) {
+    let node = allGraphNodes[j];
+    if (node === targetId) continue;
+
+    let weight = matrix[targetId * N + node];
+    if (Math.abs(weight) > eps) {
+      // 2a. Wide subtle blur glow underneath
+      ctx.lineWidth = 4.5;
+      ctx.strokeStyle = weight > 0 ? 'rgba(93, 224, 192, 0.25)' : 'rgba(224, 93, 93, 0.25)';
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(nodesCoords[node].x, nodesCoords[node].y);
+      ctx.stroke();
+
+      // 2b. Solid sharp high-intensity core line on top
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = weight > 0 ? 'rgba(93, 224, 192, 0.95)' : 'rgba(224, 93, 93, 0.95)';
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(nodesCoords[node].x, nodesCoords[node].y);
+      ctx.stroke();
+    }
+  }
+
+  // 5. Render Node Points and Typography Labels
+  allGraphNodes.forEach(key => {
+    let node = nodesCoords[key];
+    
+    // Solid background mask block to give node dots a crisp border outline
+    ctx.fillStyle = 'var(--bg0)';
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.r + 3, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Main colored core dot
+    ctx.fillStyle = node.color;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.r, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+}
+
+function drawPatternOverlapMatrix() {
+  const canvas = document.getElementById('overlap-matrix-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if(memories.length === 0) return;
+
+  const size = memories.length;
+  const cellSize = Math.floor(canvas.width / size);
+
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
+      let dot = 0;
+      for (let k = 0; k < N; k++) dot += memories[i][k] * memories[j][k];
+      const norm = Math.abs(dot / N);
+
+      ctx.fillStyle = `rgba(93, 224, 192, ${norm})`;
+      ctx.fillRect(j * cellSize, i * cellSize, cellSize - 1, cellSize - 1);
+
+      ctx.fillStyle = norm > 0.5 ? '#000000' : '#ffffff';
+      ctx.font = '9px "DM Mono"';
+      ctx.fillText((dot/N).toFixed(2), j * cellSize + (cellSize/2) - 12, i * cellSize + (cellSize/2) + 4);
+    }
+  }
+}
+
+function updateNoiseVal(key) {
+  const v = document.getElementById(`noise-sl-${key}`).value;
+  document.getElementById(`noise-val-${key}`).textContent = v + '%';
+}
+
+function updateIextVal(key) {
+  const v = document.getElementById(`iext-sl-${key}`).value;
+  document.getElementById(`iext-val-${key}`).textContent = v;
+}
+
+function updateDamageVal() {
+  const v = document.getElementById('dmg-sl').value;
+  document.getElementById('dmg-val').textContent = v + '%';
+  triggerDamageUpdate();
+}
+
+// Global hook updating single variable slider conditions
+function triggerDamageUpdate() {
+  updateDamageMatrix();
+  if(activeTabContext === 'damage' && !simContexts.damage.isRunning && simContexts.damage.simTime > 0) {
+    initNetworkStates('damage');
+  }
+}
+    
+// ═══════════════════════════════════════════════════════════════════
+//  ALZHEIMER'S PROGRESSIVE PATHOLOGY SIMULATION MODULE
+// ═══════════════════════════════════════════════════════════════════
+let alzInterval = null;
+let currentAlzStage = 0;
+
+const ALZ_STAGES = [
+  { name: "Healthy",     decay: 0.00, noise: 0.000 },
+  { name: "MCI",         decay: 0.15, noise: 0.006 },
+  { name: "Early AD",    decay: 0.35, noise: 0.018 },
+  { name: "Moderate AD", decay: 0.60, noise: 0.042 },
+  { name: "Severe AD",   decay: 0.85, noise: 0.085 }
+];
+
+function getDegradedMatrix(baseMatrix, stageIndex) {
+  const stage = ALZ_STAGES[stageIndex];
+  let degraded = new Float32Array(baseMatrix.length);
+  const pruningFactor = 1.0 - stage.decay;
+
+  for (let i = 0; i < baseMatrix.length; i++) {
+    let w = baseMatrix[i] * pruningFactor;
+
+    if (stage.noise > 0 && w !== 0) {
+      // Box-Muller transform to generate standard high-precision Gaussian noise
+      let u1 = Math.random() || 0.0001;
+      let u2 = Math.random() || 0.0001;
+      let gaussianNoise = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+      w += gaussianNoise * stage.noise;
+    }
+    degraded[i] = w;
+  }
+  return degraded;
+}
+function renderAlzheimerTopography(degradedMatrix) {
+  const canvas = document.getElementById('alz-topography-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const cs = w / CONFIG.SZ; // Size of each neuron cell block in the 20x20 lattice
+
+  ctx.clearRect(0, 0, w, w);
+
+  // Grab the live state vector arrays from the active context to determine firing profiles.
+  // Falls back to standard state tracking arrays if your variables are global (e.g., 'state' or 'S')
+  let activeStateVector = (typeof simContexts !== 'undefined')
+    ? (simContexts.normal.isRunning ? simContexts.normal.state : simContexts.damage.state)
+    : (typeof state !== 'undefined' ? state : null);
+
+  for (let i = 0; i < N; i++) {
+    const r = Math.floor(i / CONFIG.SZ);
+    const c = i % CONFIG.SZ;
+
+    // Default baseline resting cell color (dark background)
+    ctx.fillStyle = '#111116';
+
+    if (activeStateVector) {
+      // If network state is active (+1/firing vs -1/resting or basic bounds)
+      let activation = activeStateVector[i];
+      
+      if (activation > 0) {
+        // Calculate a scaled degradation impact factor to visually dim firing intensity
+        let structuralIntegrity = 1.0 - ALZ_STAGES[currentAlzStage].decay;
+        ctx.fillStyle = `rgba(93, 224, 192, ${0.2 + 0.8 * structuralIntegrity})`;
+      }
+    } else {
+      // Fallback visualization if simulation engine loop is fully idle:
+      // Project the row pattern memory mapping directly onto the canvas grid
+      let targetSliderId = parseInt(document.getElementById('alz-node-sl').value);
+      let weightLink = degradedMatrix[targetSliderId * N + i];
+      if (Math.abs(weightLink) > 0.005) {
+        let alpha = Math.min(1.0, Math.abs(weightLink) * 12.0);
+        ctx.fillStyle = weightLink > 0 ? `rgba(93, 224, 192, ${alpha})` : `rgba(224, 93, 93, ${alpha})`;
+      }
+    }
+
+    ctx.fillRect(c * cs, r * cs, cs - 1, cs - 1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  REVISED MASTER ALZHEIMER LINK CALL
+// ═══════════════════════════════════════════════════════════════════
+function renderAlzheimerNetwork() {
+  const targetId = parseInt(document.getElementById('alz-node-sl').value);
+  document.getElementById('alz-node-badge').textContent = `N${targetId}`;
+  document.getElementById('alz-node-sl').max = N - 1;
+
+  const currentMatrixSource = (activeTabContext === 'damage') ? ActiveW : BaseW;
+  const degradedMatrix = getDegradedMatrix(currentMatrixSource, currentAlzStage);
+
+  // 1. Fire up the structural network projection graph
+  const canvas = document.getElementById('alz-graph-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const centerX = w / 2, centerY = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  const eps = 0.005;
+
+  let selectedNeighbors = [];
+  for (let i = targetId - 1; i >= 0 && selectedNeighbors.length < 5; i--) {
+    selectedNeighbors.unshift(i);
+  }
+  let aboveNodes = [];
+  for (let i = targetId + 1; i < N && aboveNodes.length < 5; i++) {
+    aboveNodes.push(i);
+  }
+  selectedNeighbors = selectedNeighbors.concat(aboveNodes);
+
+  let nodesCoords = {};
+  nodesCoords[targetId] = { x: centerX, y: centerY, r: 8, color: '#ffffff' };
+
+  const ringRadius = 130;
+  selectedNeighbors.forEach((node, idx) => {
+    let angle = (idx / selectedNeighbors.length) * 2 * Math.PI;
+    let weightToTarget = degradedMatrix[targetId * N + node];
+    let nodeColor = 'var(--text3)';
+    
+    if (weightToTarget > eps) nodeColor = '#5de0c0';
+    else if (weightToTarget < -eps) nodeColor = '#e05d5d';
+
+    nodesCoords[node] = { x: centerX + ringRadius * Math.cos(angle), y: centerY + ringRadius * Math.sin(angle), r: 5.5, color: nodeColor };
+  });
+
+  const allGraphNodes = Object.keys(nodesCoords).map(Number);
+
+  ctx.lineWidth = 1.0;
+  for (let i = 0; i < allGraphNodes.length; i++) {
+    let n1 = allGraphNodes[i];
+    for (let j = i + 1; j < allGraphNodes.length; j++) {
+      let n2 = allGraphNodes[j];
+      if (n1 === targetId || n2 === targetId) continue;
+      let weight = degradedMatrix[n1 * N + n2];
+      if (Math.abs(weight) > eps) {
+        ctx.strokeStyle = weight > 0 ? 'rgba(93, 224, 192, 0.12)' : 'rgba(224, 93, 93, 0.12)';
+        ctx.beginPath(); ctx.moveTo(nodesCoords[n1].x, nodesCoords[n1].y); ctx.lineTo(nodesCoords[n2].x, nodesCoords[n2].y); ctx.stroke();
+      }
+    }
+  }
+
+  for (let j = 0; j < allGraphNodes.length; j++) {
+    let node = allGraphNodes[j];
+    if (node === targetId) continue;
+    let weight = degradedMatrix[targetId * N + node];
+    if (Math.abs(weight) > eps) {
+      ctx.lineWidth = 5.0;
+      ctx.strokeStyle = weight > 0 ? 'rgba(93, 224, 192, 0.22)' : 'rgba(224, 93, 93, 0.22)';
+      ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(nodesCoords[node].x, nodesCoords[node].y); ctx.stroke();
+
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = weight > 0 ? 'rgba(93, 224, 192, 0.90)' : 'rgba(224, 93, 93, 0.90)';
+      ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(nodesCoords[node].x, nodesCoords[node].y); ctx.stroke();
+    }
+  }
+
+  allGraphNodes.forEach(key => {
+    let node = nodesCoords[key];
+    ctx.fillStyle = 'var(--bg0)';
+    ctx.beginPath(); ctx.arc(node.x, node.y, node.r + 3.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = node.color;
+    ctx.beginPath(); ctx.arc(node.x, node.y, node.r, 0, 2 * Math.PI); ctx.fill();
+  });
+
+  // 2. TRIGGER THE TOPOGRAPHY MATRIX GRAPH UPDATE SIMULTANEOUSLY
+  renderAlzheimerTopography(degradedMatrix);
+}
+
+function updateAlzheimerStage(stageIdx, stopPlayback = false) {
+  if (stopPlayback) clearInterval(alzInterval);
+  currentAlzStage = stageIdx;
+  
+  document.getElementById('alz-stage-slider').value = stageIdx;
+  document.getElementById('alz-stage-badge').textContent = `${Math.round(ALZ_STAGES[stageIdx].decay * 100)}%`;
+  document.getElementById('alz-graph-stats-badge').textContent = ALZ_STAGES[stageIdx].name;
+
+  // Synchronize CSS Active Styling on Left Sidebar List Elements
+  const pills = document.querySelectorAll('#alz-stage-pills .stage-pill');
+  pills.forEach((pill, idx) => {
+    pill.style.background = 'transparent';
+    pill.style.border = '1px solid var(--border)';
+    pill.style.color = 'var(--text2)';
+    
+    if (idx === stageIdx) {
+      pill.style.background = 'rgba(224, 160, 80, 0.15)';
+      pill.style.borderColor = 'var(--warn)';
+      pill.style.color = 'var(--text)';
+    } else if (idx < stageIdx) {
+      pill.style.borderColor = 'rgba(224, 93, 93, 0.3)';
+      pill.style.color = 'rgba(232, 232, 240, 0.4)';
+    }
+  });
+
+  renderAlzheimerNetwork();
+}
+
+function toggleAlzheimerTimeline() {
+  const btn = document.getElementById('alz-play-btn');
+  if (alzInterval) {
+    clearInterval(alzInterval);
+    alzInterval = null;
+    btn.textContent = "Run Progression";
+  } else {
+    if (currentAlzStage >= 4) currentAlzStage = 0;
+    btn.textContent = "Pause";
+    
+    alzInterval = setInterval(() => {
+      currentAlzStage++;
+      updateAlzheimerStage(currentAlzStage, false);
+      if (currentAlzStage >= 4) {
+        clearInterval(alzInterval);
+        alzInterval = null;
+        btn.textContent = "Run Progression";
+      }
+    }, 1400); // Progresses stage index step frame every 1.4 seconds
+  }
+}
+
+function resetAlzheimerTimeline() {
+  clearInterval(alzInterval);
+  alzInterval = null;
+  if(document.getElementById('alz-play-btn')) document.getElementById('alz-play-btn').textContent = "Run Progression";
+  updateAlzheimerStage(0, false);
+}
+
+function updateParamVals() {
+  paramA = parseInt(document.getElementById('param-a-sl').value) / 100;
+  paramB = parseInt(document.getElementById('param-b-sl').value) / 100;
+  paramC = parseInt(document.getElementById('param-c-sl').value);
+  paramD = parseInt(document.getElementById('param-d-sl').value);
+
+  document.getElementById('param-a-val').textContent = paramA.toFixed(2);
+  document.getElementById('param-b-val').textContent = paramB.toFixed(2);
+  document.getElementById('param-c-val').textContent = paramC + ' mV';
+  document.getElementById('param-d-val').textContent = paramD.toFixed(1);
+  document.getElementById('active-preset-name').textContent = "Custom Manual Adjustments";
+}
+
+function setNeuronPreset(a, b, c, d, name) {
+  document.getElementById('param-a-sl').value = a * 100;
+  document.getElementById('param-b-sl').value = b * 100;
+  document.getElementById('param-c-sl').value = c;
+  document.getElementById('param-d-sl').value = d;
+  updateParamVals();
+  document.getElementById('active-preset-name').textContent = name;
+}
+
+function drawGrid(ctx, state, bounds, cellSize) {
+  const s = cellSize;
+  ctx.clearRect(0, 0, bounds, bounds);
+  for (let i = 0; i < N; i++) {
+    const r = Math.floor(i / CONFIG.SZ), c = i % CONFIG.SZ;
+    ctx.fillStyle = state[i] === 1 ? '#5de0c0' : '#17171e';
+    ctx.fillRect(c * s, r * s, s, s);
+  }
+}
+
+function setupDraw(id, state, canvasBounds, cs, callback) {
+  const cv = document.getElementById(id);
+  let down = false;
+  const flip = (e) => {
+    const rect = cv.getBoundingClientRect();
+    const sx = cv.width / rect.width, sy = cv.height / rect.height;
+    const c2 = Math.floor((e.clientX - rect.left) * sx / cs);
+    const r2 = Math.floor((e.clientY - rect.top) * sy / cs);
+    if (c2 < 0 || c2 >= CONFIG.SZ || r2 < 0 || r2 >= CONFIG.SZ) return;
+    
+    const targetIdx = r2 * CONFIG.SZ + c2;
+    state[targetIdx] = state[targetIdx] === 1 ? -1 : 1;
+    drawGrid(cv.getContext('2d'), state, canvasBounds, cs);
+    if(callback) callback();
+  };
+  cv.onmousedown = e => { down = true; flip(e); };
+  cv.onmousemove = e => { if (down) flip(e); };
+  cv.onmouseup = cv.onmouseleave = () => down = false;
+}
+
+function renderAllMemoryGrids() {
+  ['mem-grid', 'mem-grid-normal', 'mem-grid-damage'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '';
+    memories.forEach((m, i) => {
+      const cv = document.createElement('canvas');
+      cv.width = CONFIG.THUMB_DISPLAY; cv.height = CONFIG.THUMB_DISPLAY;
+      cv.className = 'pixel';
+      drawGrid(cv.getContext('2d'), m, CONFIG.THUMB_DISPLAY, CONFIG.THUMB_DISPLAY / CONFIG.SZ);
+      if (id !== 'mem-grid') {
+        cv.onclick = () => {
+          let ctxKey = id === 'mem-grid-damage' ? 'damage' : 'normal';
+          simContexts[ctxKey].cueState.set(m);
+          drawGrid(document.getElementById(`cue-canvas-${ctxKey}`).getContext('2d'), simContexts[ctxKey].cueState, CONFIG.CANVAS_DISPLAY, CONFIG.CANVAS_DISPLAY / CONFIG.SZ);
+          initNetworkStates(ctxKey);
+        };
+      }
+      el.appendChild(cv);
+    });
+  });
+  drawPatternOverlapMatrix();
+  encodeHebbian();
+}
+
+function storePattern() {
+  if (memories.length >= 6) { alert('Storage capped at 6 models.'); return; }
+  memories.push(new Int8Array(drawState));
+  renderAllMemoryGrids();
+  document.getElementById('mem-count-badge').textContent = memories.length + ' / 6';
+}
+
+function clearMemories() {
+  memories = []; BaseW.fill(0); ActiveW.fill(0);
+  renderAllMemoryGrids();
+  document.getElementById('mem-count-badge').textContent = '0 / 6';
+  ['normal','damage'].forEach(k => { if(simContexts[k].isRunning) toggleSimulation(k); simContexts[k].simTime = 0; });
+}
+
+function clearDraw() { drawState.fill(-1); drawGrid(drawCtx, drawState, CONFIG.CANVAS_DISPLAY, CONFIG.CANVAS_DISPLAY / CONFIG.SZ); }
+
+function loadPreset(i) {
+  const p = PRESETS[i];
+  drawState.set(p);
+  drawGrid(drawCtx, drawState, CONFIG.CANVAS_DISPLAY, CONFIG.CANVAS_DISPLAY / CONFIG.SZ);
+}
+
+function noisifyCue(key) {
+  let cc = simContexts[key];
+  const p = parseInt(document.getElementById(`noise-sl-${key}`).value) / 100;
+  for (let i = 0; i < N; i++) if (Math.random() < p) cc.cueState[i] *= -1;
+  drawGrid(document.getElementById(`cue-canvas-${key}`).getContext('2d'), cc.cueState, CONFIG.CANVAS_DISPLAY, CONFIG.CANVAS_DISPLAY / CONFIG.SZ);
+  initNetworkStates(key);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DAMAGE SWEEP — Robustness curve across the three pathologies
+// ═══════════════════════════════════════════════════════════════════
+let sweepResults = null;
+
+function applyDamageProgrammatic(dmgType, dmgLvl) {
+  ActiveW.set(BaseW);
+  lesionedNodes.fill(0);
+
+  
+  if (dmgType === 'decay') {
+    // Clean linear decay without overlapping noise
+    for (let i = 0; i < ActiveW.length; i++) {
+    ActiveW[i] = BaseW[i] * (1 - dmgLvl);
+    }
+  } else if (dmgType === 'noise') {
+    for (let i = 0; i < ActiveW.length; i++) {
+      ActiveW[i] = BaseW[i] + (Math.random() - 0.5) * dmgLvl * 0.3;
+    }
+  } else if (dmgType === 'neuron') {
+    let seed = 42;
+    function pr() { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
+    let idxs = Array.from({length: N}, (_, i) => i).sort(() => pr() - 0.5);
+    let count = Math.min(N, Math.floor(N * dmgLvl));
+    for (let i = 0; i < count; i++) lesionedNodes[idxs[i]] = 1;
+  } else if (dmgType === 'targeted') {
+      let nodeStrengths = new Float32Array(N);
+      for (let i = 0; i < N; i++) {
+        let sumWeights = 0;
+        for (let j = 0; j < N; j++) {
+          sumWeights += Math.abs(BaseW[i * N + j]) + Math.abs(BaseW[j * N + i]);
+        }
+        nodeStrengths[i] = sumWeights;
+      }
+      let sortedHubs = Array.from({length: N}, (_, i) => i).sort((a, b) => nodeStrengths[b] - nodeStrengths[a]);
+      let cut = Math.floor(dmgLvl * N);
+      for (let k = 0; k < cut; k++) {
+        lesionedNodes[sortedHubs[k]] = 1;
+      }
+  }
+  for (let i = 0; i < N; i++) {
+    if (lesionedNodes[i] === 1) {
+      for (let j = 0; j < N; j++) {
+        ActiveW[i * N + j] = 0;
+        ActiveW[j * N + i] = 0;
+      }
+    }
+  }
+  
+}
+
+async function runDamageSweep() {
+  if (memories.length !== 1) {
+    alert('The damage sweep requires exactly ONE stored memory. Currently stored: ' + memories.length + '.\nUse "Ablate Weights" then commit a single pattern.');
+    return;
+  }
+
+  if (simContexts.normal.isRunning) toggleSimulation('normal');
+  if (simContexts.damage.isRunning) toggleSimulation('damage');
+
+  const btn = document.getElementById('sweep-btn');
+  const badge = document.getElementById('sweep-status-badge');
+  btn.disabled = true;
+
+  const numLevels = parseInt(document.getElementById('sweep-res-sl').value);
+  const SWEEP_LAMBDA_MAX = 10.0;
+  const dmgLevels = Array.from({length: numLevels}, (_, i) => i * (SWEEP_LAMBDA_MAX / (numLevels - 1)));
+  const types = ['decay', 'neuron', 'noise'];
+  const target = memories[0];
+
+  const STEPS_TRANSIENT = 600;
+  const STEPS_MEASURE   = 600;
+  const SAMPLE_EVERY    = 20;
+
+  const savedDmgLevel = document.getElementById('dmg-sl').value;
+  const savedDmgType  = document.getElementById('dmg-type').value;
+
+  const results = { decay: [], neuron: [], noise: [] };
+  const cc = simContexts.damage;
+
+  for (const dmgType of types) {
+    for (const lvl of dmgLevels) {
+      badge.textContent = `${dmgType} @ ${(lvl*100).toFixed(0)}%`;
+
+      applyDamageProgrammatic(dmgType, lvl);
+      cc.cueState.set(target);
+      initNetworkStates('damage');
+
+      for (let s = 0; s < STEPS_TRANSIENT; s++) stepIzhikevich('damage');
+
+      let maxOverlap = 0;
+      for (let s = 0; s < STEPS_MEASURE; s++) {
+        stepIzhikevich('damage');
+        if (s % SAMPLE_EVERY === 0) {
+          let dot = 0;
+          for (let i = 0; i < N; i++) {
+            const bit = cc.sTrace[i] > 0.15 ? 1 : -1;
+            dot += bit * target[i];
+          }
+          const m = Math.abs(dot / N);
+          if (m > maxOverlap) maxOverlap = m;
+        }
+      }
+      results[dmgType].push({ x: lvl, y: maxOverlap });
+      sweepResults = results;
+      drawSweepCurves(results);
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  document.getElementById('dmg-sl').value = savedDmgLevel;
+  document.getElementById('dmg-type').value = savedDmgType;
+  updateDamageMatrix();
+  initNetworkStates('damage');
+
+  badge.textContent = 'Sweep complete';
+  btn.disabled = false;
+}
+
+function clearSweep() {
+  sweepResults = null;
+  document.getElementById('sweep-status-badge').textContent = 'Idle';
+  const cv = document.getElementById('sweep-canvas');
+  cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+  drawSweepAxes();
+}
+
+function drawSweepAxes() {
+  const cv = document.getElementById('sweep-canvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const padL = 60, padR = 30, padT = 25, padB = 45;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = padT + plotH - (i / 5) * plotH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+  }
+  for (let i = 0; i <= 10; i++) {
+    const x = padL + (i / 10) * plotW;
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  ctx.fillStyle = '#9090a8';
+  ctx.font = '10px "DM Mono"';
+  for (let i = 0; i <= 5; i++) {
+    const y = padT + plotH - (i / 5) * plotH;
+    ctx.fillText((i/5).toFixed(1), padL - 28, y + 3);
+  }
+  for (let i = 0; i <= 10; i++) {
+    const x = padL + (i / 10) * plotW;
+    ctx.fillText(i.toString(), x - 4, padT + plotH + 16);
+  }
+
+  ctx.fillStyle = '#e8e8f0';
+  ctx.font = '12px "DM Sans"';
+  ctx.fillText('Damage strength  λ', padL + plotW/2 - 50, H - 12);
+  ctx.save();
+  ctx.translate(18, padT + plotH/2 + 50);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('Max overlap  m', 0, 0);
+  ctx.restore();
+
+  return { padL, padR, padT, padB, plotW, plotH };
+}
+
+function drawSweepCurves(results) {
+  const dims = drawSweepAxes();
+  if (!dims) return;
+  const cv = document.getElementById('sweep-canvas');
+  const ctx = cv.getContext('2d');
+  const { padL, padT, plotW, plotH } = dims;
+
+  const styles = {
+    decay:  { color: '#e0a050', label: 'Synaptic sclerosis (decay)' },
+    neuron: { color: '#e05d5d', label: 'Focal necrosis (lesion)' },
+    noise:  { color: '#5d9de0', label: 'Diffuse dysmetria (noise)' }
+  };
+
+  Object.keys(results).forEach(key => {
+    const pts = results[key];
+    if (pts.length === 0) return;
+    const s = styles[key];
+
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    pts.forEach((p, idx) => {
+      const px = padL + (p.x / 10) * plotW;
+      const py = padT + plotH - p.y * plotH;
+      if (idx === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = s.color;
+    pts.forEach(p => {
+      const px = padL + (p.x / 10) * plotW;
+      const py = padT + plotH - p.y * plotH;
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+  });
+
+  let lx = padL + 14, ly = padT + 18;
+  ctx.font = '11px "DM Mono"';
+  Object.keys(styles).forEach(key => {
+    const s = styles[key];
+    ctx.fillStyle = s.color;
+    ctx.fillRect(lx, ly - 7, 14, 3);
+    ctx.fillStyle = '#e8e8f0';
+    ctx.fillText(s.label, lx + 20, ly - 3);
+    ly += 16;
+  });
+}
+
+function setPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const targetPage = document.getElementById(`page-${pageId}`);
+  if (targetPage) targetPage.classList.add('active');
+  const tabBtn = Array.from(document.querySelectorAll('.nav-tab')).find(t => t.getAttribute('onclick').includes(pageId));
+  if (tabBtn) tabBtn.classList.add('active');
+
+  if (activeTabContext === 'alz' || (document.getElementById('page-alz') && document.getElementById('page-alz').classList.contains('active'))) {
+    // Pass the active state through the renderer to maintain real-time feedback
+    const currentMatrixSource = (activeTabContext === 'damage') ? ActiveW : BaseW;
+    const degradedMatrix = getDegradedMatrix(currentMatrixSource, currentAlzStage);
+    renderAlzheimerTopography(degradedMatrix);
+  }
+  
+  if (pageId === 'structural') renderStructuralMatrixRow();
+  if (pageId === 'analysis') {
+    drawPatternOverlapMatrix();
+    let targetKey = simContexts.normal.isRunning ? 'normal' : 'damage';
+    renderEnergyLandscapeTopology(simContexts[targetKey]);}
+  if (pageId === 'sweep') {
+    if (sweepResults) drawSweepCurves(sweepResults);
+    else drawSweepAxes();
+  }
+}
+
+let drawCtx;
+window.onload = () => {
+  // Dynamically assign execution layouts to canvases matching CONFIG parameters
+  const targetCanvases = ['draw-canvas', 'cue-canvas-normal', 'cue-canvas-damage', 'out-canvas-normal', 'out-canvas-damage', 'structural-spatial-canvas'];
+  targetCanvases.forEach(id => {
+    let el = document.getElementById(id);
+    if(el) { el.width = CONFIG.CANVAS_DISPLAY; el.height = CONFIG.CANVAS_DISPLAY; }
+  });
+
+  document.getElementById('nav-system-dims').textContent = `N=${N} Units`;
+  document.getElementById('footer-system-dt').innerHTML = `Runge-Kutta 1-step solver &middot; &Delta;t = ${DT} ms &middot; Size: ${CONFIG.SZ}x${CONFIG.SZ}`;
+
+  const workspaceCellSize = CONFIG.CANVAS_DISPLAY / CONFIG.SZ;
+  drawCtx = document.getElementById('draw-canvas').getContext('2d');
+  
+  setupDraw('draw-canvas', drawState, CONFIG.CANVAS_DISPLAY, workspaceCellSize);
+
+  for(let i=0; i<3; i++) memories.push(new Int8Array(PRESETS[i]));
+  
+  ['normal','damage'].forEach(k => {
+    let cvId = `cue-canvas-${k}`;
+    simContexts[k].cueState.set(PRESETS[0]);
+    setupDraw(cvId, simContexts[k].cueState, CONFIG.CANVAS_DISPLAY, workspaceCellSize);
+    drawGrid(document.getElementById(cvId).getContext('2d'), simContexts[k].cueState, CONFIG.CANVAS_DISPLAY, workspaceCellSize);
+  });
+
+  renderAllMemoryGrids();
+  document.getElementById('mem-count-badge').textContent = memories.length + ' / 6';
+  drawGrid(drawCtx, drawState, CONFIG.CANVAS_DISPLAY, workspaceCellSize);
+};
+</script>
+</body>
+</html>
