@@ -69,7 +69,7 @@ input[type=range]{flex:1;-webkit-appearance:none;height:2px;background:var(--bg3
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;}
 
 /* PIXEL GRID */
-canvas.pixel{image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;cursor:pointer;display:block;}
+canvas.pixel{image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;cursor:pointer;display:block;max-width:100%;}
 canvas.pixel:hover{border-color:var(--border2);}
 canvas.pixel.selected{border-color:var(--accent);box-shadow:0 0 0 1px rgba(93,224,192,.3);}
 
@@ -121,7 +121,7 @@ footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--
 .mobile-menu.open{display:flex;}
 .mobile-menu .m-tab{display:block;padding:16px;font-family:var(--mono);font-size:14px;color:var(--text2);-webkit-appearance:none;appearance:none;background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;text-align:left;width:100%;-webkit-tap-highlight-color:transparent;}
 .mobile-menu .m-tab:active{background:var(--bg2);color:var(--text);}
-@media(max-width:768px){.nav-tabs{display:none;}.menu-btn{display:flex;}}
+@media(max-width:768px){.nav-tabs{display:none;}.menu-btn{display:flex;}nav{padding:0 1rem;}.page.active{padding:1.25rem;}}
 </style>
 </head>
 <body>
@@ -160,7 +160,7 @@ footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--
   <div class="two-col">
     <div class="card">
       <div class="card-title">Draw pattern</div>
-      <canvas id="draw-canvas" class="pixel" width="160" height="160"></canvas>
+      <canvas id="draw-canvas" class="pixel" width="240" height="240"></canvas>
       <div class="btn-row">
         <button class="btn primary" onclick="storePattern()">Store memory</button>
         <button class="btn" onclick="clearDraw()">Clear</button>
@@ -196,7 +196,7 @@ footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--
   <div class="two-col">
     <div class="card">
       <div class="card-title">Input cue</div>
-      <canvas id="cue-canvas" class="pixel" width="160" height="160"></canvas>
+      <canvas id="cue-canvas" class="pixel" width="240" height="240"></canvas>
       <div class="slider-row">
         <label>Noise level</label>
         <input type="range" min="0" max="65" value="20" id="noise-sl" oninput="document.getElementById('noise-val').textContent=this.value+'%'"/>
@@ -211,7 +211,7 @@ footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--
     </div>
     <div class="card">
       <div class="card-title">Retrieved attractor state</div>
-      <canvas id="out-canvas" class="pixel" width="160" height="160"></canvas>
+      <canvas id="out-canvas" class="pixel" width="240" height="240"></canvas>
       <div class="log" id="iter-log">—</div>
       <div class="stats-row" style="margin-top:.75rem;">
         <div class="stat-box"><div class="sl">overlap m</div><div class="sv" id="ov-val">—</div></div>
@@ -260,15 +260,15 @@ footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;align-items:start;">
         <div>
           <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:6px;">cue (noisy)</div>
-          <canvas id="dr-cue" class="pixel" width="120" height="120"></canvas>
+          <canvas id="dr-cue" class="pixel" width="160" height="160"></canvas>
         </div>
         <div>
           <div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:6px;">healthy</div>
-          <canvas id="dr-healthy" class="pixel" width="120" height="120"></canvas>
+          <canvas id="dr-healthy" class="pixel" width="160" height="160"></canvas>
         </div>
         <div>
           <div style="font-family:var(--mono);font-size:11px;color:var(--warn);margin-bottom:6px;">damaged</div>
-          <canvas id="dr-damaged" class="pixel" width="120" height="120"></canvas>
+          <canvas id="dr-damaged" class="pixel" width="160" height="160"></canvas>
         </div>
       </div>
       <div class="stats-row" style="margin-top:1rem;">
@@ -602,7 +602,7 @@ function renderAllMemoryGrids() {
       drawGrid(cv.getContext('2d'), m, null, 10);
       if (id === 'mem-grid-r') {
         cv.title = 'Load as cue';
-        cv.onclick = () => { cueState.set(m); drawGrid(cueCtx, cueState, null, 20); };
+        cv.onclick = () => { cueState.set(m); drawGrid(cueCtx, cueState, null, 30); };
       }
       if (id === 'mem-grid-dr') {
         cv.onclick = () => { drSelectedMem = i; renderAllMemoryGrids(); };
@@ -629,12 +629,12 @@ function clearMemories() {
   document.getElementById('mem-count-badge').textContent = '0 / 6';
 }
 
-function clearDraw() { drawState.fill(-1); drawGrid(drawCtx, drawState, null, 20); }
+function clearDraw() { drawState.fill(-1); drawGrid(drawCtx, drawState, null, 30); }
 
 function loadPreset(i) {
   const p = PRESETS[i];
   for (let j = 0; j < N; j++) drawState[j] = p[j] ? 1 : -1;
-  drawGrid(drawCtx, drawState, null, 20);
+  drawGrid(drawCtx, drawState, null, 30);
 }
 
 // ═══════════════════════════════════════════
@@ -643,14 +643,14 @@ function loadPreset(i) {
 function noisifyCue() {
   const p = parseInt(document.getElementById('noise-sl').value) / 100;
   for (let i = 0; i < N; i++) if (Math.random() < p) cueState[i] *= -1;
-  drawGrid(cueCtx, cueState, null, 20);
+  drawGrid(cueCtx, cueState, null, 30);
 }
 
 function runRetrieval() {
   if (memories.length === 0) { alert('Store some memories first!'); return; }
   const { state, iters } = runHopfield(cueState, W, null, 60);
   outState.set(state);
-  drawGrid(outCtx, outState, null, 20);
+  drawGrid(outCtx, outState, null, 30);
   let best = -Infinity, bestIdx = 0;
   memories.forEach((m, i) => { const ov = overlap(state, m); if (ov > best) { best = ov; bestIdx = i; } });
   const e = energy(state, W);
@@ -677,11 +677,11 @@ function runDamageRetrieval() {
   // Noisy cue (same for both runs)
   const cue = new Int8Array(src);
   for (let i = 0; i < N; i++) if (Math.random() < noisePct) cue[i] *= -1;
-  drawGrid(document.getElementById('dr-cue').getContext('2d'), cue, null, 15);
+  drawGrid(document.getElementById('dr-cue').getContext('2d'), cue, null, 20);
 
   // Healthy retrieval
   const { state: hState, iters: hIters } = runHopfield(cue, W, null, 60);
-  drawGrid(document.getElementById('dr-healthy').getContext('2d'), hState, null, 15);
+  drawGrid(document.getElementById('dr-healthy').getContext('2d'), hState, null, 20);
 
   // Build damaged weights — each mode must actually break retrieval
   const dW = new Float32Array(W);
@@ -720,7 +720,7 @@ function runDamageRetrieval() {
   }
 
   const { state: dState, iters: dIters } = runHopfield(cue, dW, les, 60);
-  drawGrid(document.getElementById('dr-damaged').getContext('2d'), dState, les, 15);
+  drawGrid(document.getElementById('dr-damaged').getContext('2d'), dState, les, 20);
 
   const hOv = overlap(hState, src);
   const dOv = overlap(dState, src);
@@ -1294,11 +1294,11 @@ const drawCtx = document.getElementById('draw-canvas').getContext('2d');
 const cueCtx  = document.getElementById('cue-canvas').getContext('2d');
 const outCtx  = document.getElementById('out-canvas').getContext('2d');
 
-setupDraw('draw-canvas', drawState, 20);
-setupDraw('cue-canvas',  cueState,  20);
-drawGrid(drawCtx, drawState, null, 20);
-drawGrid(cueCtx,  cueState,  null, 20);
-drawGrid(outCtx,  outState,  null, 20);
+setupDraw('draw-canvas', drawState, 30);
+setupDraw('cue-canvas',  cueState,  30);
+drawGrid(drawCtx, drawState, null, 30);
+drawGrid(cueCtx,  cueState,  null, 30);
+drawGrid(outCtx,  outState,  null, 30);
 
 // Pre-load 3 patterns for demo
 [0, 1, 2].forEach(i => {
