@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Hopfield Research Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg0: #0a0a0c;
+  --bg1: #111116;
+  --bg2: #17171e;
+  --bg3: #1f1f28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8e8f0;
+  --text2: #9090a8;
+  --text3: #55556a;
+  --accent: #5de0c0;
+  --warn: #e0a050;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg0);color:var(--text);font-family:var(--sans);}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;gap:0;}
+
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:.75rem;text-align:center;}
+h1{font-family:var(--mono);font-size:clamp(18px,3.5vw,28px);color:var(--text);font-weight:400;letter-spacing:-.01em;margin-bottom:.5rem;text-align:center;}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:2.5rem;text-align:center;line-height:1.6;}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;width:100%;max-width:680px;}
+@media(max-width:520px){.cards{grid-template-columns:1fr;max-width:320px;}}
+
+.card{
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:1.5rem;
+  cursor:pointer;
+  text-decoration:none;
+  color:inherit;
+  display:flex;
+  flex-direction:column;
+  gap:.85rem;
+  transition:border-color .2s,background .18s,transform .15s,box-shadow .2s;
+}
+.card:hover{
+  background:var(--bg2);
+  transform:translateY(-3px);
+}
+.card.c1:hover{border-color:rgba(93,224,192,.3);box-shadow:0 8px 32px rgba(93,224,192,.06);}
+.card.c2:hover{border-color:rgba(224,160,80,.3);box-shadow:0 8px 32px rgba(224,160,80,.06);}
+.card:active{transform:translateY(-1px);}
+
+.card-tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;}
+.c1 .card-tag{color:var(--accent);}
+.c2 .card-tag{color:var(--warn);}
+
+.preview{
+  width:100%;
+  aspect-ratio:1;
+  border-radius:8px;
+  background:var(--bg0);
+  border:1px solid var(--border);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.preview canvas{width:100%;height:100%;image-rendering:pixelated;}
+
+.card-title{font-family:var(--mono);font-size:14px;color:var(--text);font-weight:400;}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.65;}
+.tags{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:auto;padding-top:.25rem;}
+.tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg3);color:var(--text3);}
+
+footer{margin-top:2.5rem;font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Hopfield Research Suite</div>
+<h1>Choose your simulator</h1>
+<p class="subtitle">Associative memory — two models, one framework.</p>
+
+<div class="cards">
+
+  <a class="card c1" href="hopfield_memory_damage.html">
+    <div class="card-tag">Classic · Discrete</div>
+    <div class="preview"><canvas id="cv1" width="64" height="64"></canvas></div>
+    <div class="card-title">Hopfield Network</div>
+    <div class="card-desc">Binary ±1 neurons with Hebbian weights. Explore storage capacity, energy landscapes, damage models, and Alzheimer's progression.</div>
+    <div class="tags">
+      <span class="tag">N = 64</span>
+      <span class="tag">Hebbian</span>
+      <span class="tag">Phase diagram</span>
+    </div>
+  </a>
+
+  <a class="card c2" href="hopfield_izhikievich.html">
+    <div class="card-tag">Spiking · Continuous</div>
+    <div class="preview"><canvas id="cv2" width="80" height="80"></canvas></div>
+    <div class="card-title">Izhikevich Spiking</div>
+    <div class="card-desc">Continuous membrane dynamics with synaptic traces. Patterns stored as resonant spiking assemblies — closer to biological neural computation.</div>
+    <div class="tags">
+      <span class="tag">N = 400</span>
+      <span class="tag">Spiking</span>
+      <span class="tag">Damage sweep</span>
+    </div>
+  </a>
+
+</div>
+
+<footer>Master in Physics of Complex Systems and Biophysics</footer>
+
+<script>
+function drawPixelPreview(id, pattern, sz, color) {
+  const cv = document.getElementById(id);
+  const ctx = cv.getContext('2d');
+  const cs = cv.width / sz;
+  for (let i = 0; i < sz * sz; i++) {
+    const r = Math.floor(i / sz), c = i % sz;
+    ctx.fillStyle = pattern[i] ? color : '#17171e';
+    ctx.fillRect(c * cs, r * cs, cs - 0.5, cs - 0.5);
+  }
+}
+
+// Letter "H" on 8×8 grid, tiled to 64×64
+const H8 = [
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,1,1,1,1,1,1,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  0,0,0,0,0,0,0,0,
+];
+
+// Concentric rings on 20×20 (matches izhikievich preset)
+const SZ = 20;
+const rings = Array.from({length: SZ * SZ}, (_, i) => {
+  const row = Math.floor(i / SZ), col = i % SZ;
+  const dx = (col + 0.5) - SZ / 2, dy = (row + 0.5) - SZ / 2;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  return (d >= 3 && d <= 4.8) || (d >= 8.8 && d <= 10.2) ? 1 : 0;
+});
+
+drawPixelPreview('cv1', H8, 8, '#5de0c0');
+drawPixelPreview('cv2', rings, SZ, '#e0a050');
+</script>
+
+</body>
+</html>
