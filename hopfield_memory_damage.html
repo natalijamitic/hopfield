@@ -110,6 +110,19 @@ canvas.pixel.selected{border-color:var(--accent);box-shadow:0 0 0 1px rgba(93,22
 
 /* FOOTER */
 footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;}
+
+/* MOBILE MENU */
+.menu-btn{display:none;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;cursor:pointer;padding:8px 4px;border-radius:6px;flex-shrink:0;}
+.menu-btn span{display:block;width:20px;height:1.5px;background:var(--text2);border-radius:2px;transition:transform .2s,opacity .2s;}
+.menu-btn:hover span{background:var(--text);}
+.menu-btn.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.menu-btn.open span:nth-child(2){opacity:0;}
+.menu-btn.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+.mobile-menu{display:none;position:fixed;top:52px;left:0;right:0;bottom:0;background:var(--bg0);z-index:99;flex-direction:column;padding:1rem 1.25rem;gap:2px;overflow-y:auto;border-top:1px solid var(--border);}
+.mobile-menu.open{display:flex;}
+.mobile-menu .m-tab{display:block;padding:14px 16px;font-family:var(--mono);font-size:13px;color:var(--text2);background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;text-align:left;width:100%;transition:color .15s,background .15s;}
+.mobile-menu .m-tab:hover,.mobile-menu .m-tab:active{background:var(--bg2);color:var(--text);}
+@media(max-width:640px){.nav-tabs{display:none;}.menu-btn{display:flex;}}
 </style>
 </head>
 <body>
@@ -126,7 +139,20 @@ footer{padding:.75rem 2rem;border-top:1px solid var(--border);font-family:var(--
     <button class="nav-tab" onclick="setPage('alz')">Alzheimer's</button>
     <button class="nav-tab" onclick="setPage('theory')">Theory</button>
   </div>
+  <button class="menu-btn" id="menu-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+<div class="mobile-menu" id="mobile-menu">
+  <button class="m-tab" onclick="setPage('store')">Store</button>
+  <button class="m-tab" onclick="setPage('retrieve')">Retrieve</button>
+  <button class="m-tab" onclick="setPage('dmgret')">Damage Retrieve</button>
+  <button class="m-tab" onclick="setPage('network')">Network</button>
+  <button class="m-tab" onclick="setPage('energy')">Energy</button>
+  <button class="m-tab" onclick="setPage('phase')">Phase</button>
+  <button class="m-tab" onclick="setPage('alz')">Alzheimer's</button>
+  <button class="m-tab" onclick="setPage('theory')">Theory</button>
+</div>
 
 <main>
 
@@ -1244,12 +1270,19 @@ function resetAlzheimer() {
 // ═══════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════
+function toggleMobileMenu() {
+  document.getElementById('mobile-menu').classList.toggle('open');
+  document.getElementById('menu-btn').classList.toggle('open');
+}
+
 function setPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach((t, i) => {
     t.classList.toggle('active', ['store','retrieve','dmgret','network','energy','phase','alz','theory'][i] === id);
   });
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('menu-btn').classList.remove('open');
   if (id === 'energy') drawEnergyLandscape();
   if (['retrieve','alz','dmgret'].includes(id)) renderAllMemoryGrids();
   if (id === 'network') { renderAllMemoryGrids(); drawNetwork(); }
